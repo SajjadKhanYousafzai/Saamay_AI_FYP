@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import 'recite_provider.dart';
 import 'surah_detail_screen.dart';
+import 'para_detail_screen.dart';
 
 class ReciteScreen extends StatefulWidget {
   const ReciteScreen({super.key});
@@ -106,8 +107,8 @@ class _ReciteScreenState extends State<ReciteScreen>
             children: [
               // Surah tab
               _buildSurahList(context, isDark),
-              // Para tab (placeholder)
-              _buildPlaceholder('Para'),
+              // Para tab
+              _buildParaList(context, isDark),
               // Page tab (placeholder)
               _buildPlaceholder('Page'),
               // Hijb tab (placeholder)
@@ -132,6 +133,27 @@ class _ReciteScreenState extends State<ReciteScreen>
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => SurahDetailScreen(surah: surah),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildParaList(BuildContext context, bool isDark) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      itemCount: ReciteProvider.paras.length,
+      itemBuilder: (context, index) {
+        final para = ReciteProvider.paras[index];
+        return _ParaListTile(
+          para: para,
+          isDark: isDark,
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ParaDetailScreen(para: para),
               ),
             );
           },
@@ -271,6 +293,112 @@ class _DiamondBadge extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ParaListTile extends StatelessWidget {
+  final ParaInfo para;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _ParaListTile({
+    required this.para,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.cardDark : AppColors.cardLight,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withOpacity(0.06)
+                : Colors.grey.shade200,
+          ),
+        ),
+        child: Row(
+          children: [
+            // Diamond number badge (green for Para)
+            Transform.rotate(
+              angle: 0.785398,
+              child: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF5C6BC0), Color(0xFF3949AB)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Transform.rotate(
+                  angle: -0.785398,
+                  child: Center(
+                    child: Text(
+                      '${para.number}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+
+            // Name and info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    para.name,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Starts: ${para.startingSurah} • ${para.totalVerses} Verses',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textGrey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Arabic name
+            Text(
+              para.arabicName,
+              style: GoogleFonts.amiriQuran(
+                fontSize: 20,
+                fontWeight: FontWeight.w400,
+                color: isDark
+                    ? Colors.white.withOpacity(0.7)
+                    : Colors.black54,
+              ),
+              textDirection: TextDirection.rtl,
+            ),
+          ],
+        ),
+      ),
       ),
     );
   }

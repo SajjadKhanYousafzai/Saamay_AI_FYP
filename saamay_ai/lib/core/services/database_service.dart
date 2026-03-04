@@ -56,6 +56,71 @@ class DatabaseService {
     return List<Map<String, dynamic>>.from(response);
   }
 
+  // Juz boundaries: [startSurah, startAyah, endSurah, endAyah]
+  static const List<List<int>> _juzBoundaries = [
+    [1, 1, 2, 141],      // Juz 1
+    [2, 142, 2, 252],     // Juz 2
+    [2, 253, 3, 92],      // Juz 3
+    [3, 93, 4, 23],       // Juz 4
+    [4, 24, 4, 147],      // Juz 5
+    [4, 148, 5, 81],      // Juz 6
+    [5, 82, 6, 110],      // Juz 7
+    [6, 111, 7, 87],      // Juz 8
+    [7, 88, 8, 40],       // Juz 9
+    [8, 41, 9, 92],       // Juz 10
+    [9, 93, 11, 5],       // Juz 11
+    [11, 6, 12, 52],      // Juz 12
+    [12, 53, 14, 52],     // Juz 13
+    [15, 1, 16, 128],     // Juz 14
+    [17, 1, 18, 74],      // Juz 15
+    [18, 75, 20, 135],    // Juz 16
+    [21, 1, 22, 78],      // Juz 17
+    [23, 1, 25, 20],      // Juz 18
+    [25, 21, 27, 55],     // Juz 19
+    [27, 56, 29, 45],     // Juz 20
+    [29, 46, 33, 30],     // Juz 21
+    [33, 31, 36, 27],     // Juz 22
+    [36, 28, 39, 31],     // Juz 23
+    [39, 32, 41, 46],     // Juz 24
+    [41, 47, 45, 37],     // Juz 25
+    [46, 1, 51, 30],      // Juz 26
+    [51, 31, 57, 29],     // Juz 27
+    [58, 1, 66, 12],      // Juz 28
+    [67, 1, 77, 50],      // Juz 29
+    [78, 1, 114, 6],      // Juz 30
+  ];
+
+  Future<List<Map<String, dynamic>>> getJuzVerses(int juzNumber) async {
+    if (juzNumber < 1 || juzNumber > 30) return [];
+    final b = _juzBoundaries[juzNumber - 1];
+    final startSurah = b[0], startAyah = b[1], endSurah = b[2], endAyah = b[3];
+
+    String filter;
+    if (startSurah == endSurah) {
+      // Same surah — simple range
+      filter = 'and(surah.eq.$startSurah,ayah.gte.$startAyah,ayah.lte.$endAyah)';
+    } else {
+      List<String> conditions = [];
+      // Start surah (partial — from startAyah to end)
+      conditions.add('and(surah.eq.$startSurah,ayah.gte.$startAyah)');
+      // Middle surahs (fully included)
+      if (endSurah - startSurah > 1) {
+        conditions.add('and(surah.gt.$startSurah,surah.lt.$endSurah)');
+      }
+      // End surah (partial — from 1 to endAyah)
+      conditions.add('and(surah.eq.$endSurah,ayah.lte.$endAyah)');
+      filter = conditions.join(',');
+    }
+
+    final response = await _client
+        .from(AppStrings.tableQuranVerses)
+        .select()
+        .or(filter)
+        .order('surah', ascending: true)
+        .order('ayah', ascending: true);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
   Future<Map<String, dynamic>?> getVerse(int surah, int ayah) async {
     final response = await _client
         .from(AppStrings.tableQuranVerses)

@@ -122,6 +122,40 @@ class ReciteProvider extends ChangeNotifier {
     SurahInfo(114, 'An-Nas', 'الناس', 'Mankind', 'Meccan', 6),
   ];
 
+  // ── Para (Juz) metadata ──
+  static const List<ParaInfo> paras = [
+    ParaInfo(1, 'Alif Lam Mim', 'الم', 'Al-Baqarah 1', 148),
+    ParaInfo(2, 'Sayaqool', 'سيقول', 'Al-Baqarah 142', 111),
+    ParaInfo(3, 'Tilkal Rusul', 'تلك الرسل', 'Al-Baqarah 253', 126),
+    ParaInfo(4, 'Lan Tanaloo', 'لن تنالوا', 'Aal-Imran 93', 131),
+    ParaInfo(5, 'Wal Muhsanat', 'والمحصنات', 'An-Nisa 24', 124),
+    ParaInfo(6, 'La Yuhibbullah', 'لا يحب الله', 'An-Nisa 148', 110),
+    ParaInfo(7, 'Wa Iza Samiu', 'وإذا سمعوا', 'Al-Maidah 83', 149),
+    ParaInfo(8, 'Wa Lau Annana', 'ولو أننا', 'Al-Anam 111', 142),
+    ParaInfo(9, 'Qal al-Mala', 'قال الملأ', 'Al-Araf 88', 159),
+    ParaInfo(10, 'Wa A\'lamu', 'واعلموا', 'Al-Anfal 41', 127),
+    ParaInfo(11, 'Yatazeroon', 'يعتذرون', 'At-Tawbah 93', 151),
+    ParaInfo(12, 'Wa Ma Min Dabbah', 'وما من دابة', 'Hud 6', 110),
+    ParaInfo(13, 'Wa Ma Ubarri\'u', 'وما أبرئ', 'Yusuf 53', 154),
+    ParaInfo(14, 'Rubama', 'ربما', 'Al-Hijr 1', 227),
+    ParaInfo(15, 'Subhan Alladhi', 'سبحان الذي', 'Al-Isra 1', 185),
+    ParaInfo(16, 'Qal Alam', 'قال ألم', 'Al-Kahf 75', 269),
+    ParaInfo(17, 'Iqtaraba', 'اقترب', 'Al-Anbya 1', 190),
+    ParaInfo(18, 'Qad Aflaha', 'قد أفلح', 'Al-Muminun 1', 202),
+    ParaInfo(19, 'Wa Qal Alladhina', 'وقال الذين', 'Al-Furqan 21', 339),
+    ParaInfo(20, 'A\'man Khalaq', 'أمن خلق', 'An-Naml 56', 171),
+    ParaInfo(21, 'Utlu Ma Uhiya', 'اتل ما أوحي', 'Al-Ankabut 46', 178),
+    ParaInfo(22, 'Wa Man Yaqnut', 'ومن يقنت', 'Al-Ahzab 31', 169),
+    ParaInfo(23, 'Wa Mali', 'وما لي', 'Ya-Sin 22', 357),
+    ParaInfo(24, 'Fa Man Azlamu', 'فمن أظلم', 'Az-Zumar 32', 175),
+    ParaInfo(25, 'Ilayhi Yuraddu', 'إليه يرد', 'Fussilat 47', 246),
+    ParaInfo(26, 'Ha Mim', 'حم', 'Al-Ahqaf 1', 195),
+    ParaInfo(27, 'Qala Fa Ma Khatbukum', 'قال فما خطبكم', 'Adh-Dhariyat 31', 399),
+    ParaInfo(28, 'Qad Sami\'a', 'قد سمع', 'Al-Mujadila 1', 137),
+    ParaInfo(29, 'Tabarakalladhi', 'تبارك الذي', 'Al-Mulk 1', 431),
+    ParaInfo(30, 'Amma Yatasa\'aloon', 'عمّ يتساءلون', 'An-Naba 1', 564),
+  ];
+
   // ── State ──
   List<Map<String, dynamic>> _verses = [];
   bool _isLoading = false;
@@ -148,6 +182,25 @@ class ReciteProvider extends ChangeNotifier {
       _verses = await _db.getSurahVerses(surahNumber);
       if (_verses.isEmpty) {
         _error = 'No verses found. Please ensure quran_verses table is populated.';
+      }
+    } catch (e) {
+      _error = 'Error loading verses: $e';
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> loadJuzVerses(int juzNumber) async {
+    _isLoading = true;
+    _error = null;
+    _verses = [];
+    notifyListeners();
+
+    try {
+      _verses = await _db.getJuzVerses(juzNumber);
+      if (_verses.isEmpty) {
+        _error = 'No verses found for this Para.';
       }
     } catch (e) {
       _error = 'Error loading verses: $e';
@@ -189,5 +242,21 @@ class SurahInfo {
     this.englishMeaning,
     this.type,
     this.verseCount,
+  );
+}
+
+class ParaInfo {
+  final int number;
+  final String name;
+  final String arabicName;
+  final String startingSurah;
+  final int totalVerses;
+
+  const ParaInfo(
+    this.number,
+    this.name,
+    this.arabicName,
+    this.startingSurah,
+    this.totalVerses,
   );
 }

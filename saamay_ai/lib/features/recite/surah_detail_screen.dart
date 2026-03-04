@@ -244,12 +244,65 @@ class _SurahDetailView extends StatelessWidget {
       );
     }
 
+    // Filter out Bismillah verse (ayah 1 starting with بسم) for all surahs except At-Tawbah
+    bool bismillahSkipped = false;
+    final filteredVerses = provider.verses.where((verse) {
+      final ayah = verse['ayah'] ?? 0;
+      final text = (verse['text'] ?? '').toString().trim();
+      if (ayah == 1 && surah.number != 9) {
+        if (text.startsWith('بِسۡمِ') || text.startsWith('بِسْمِ') || text.startsWith('بسم')) {
+          bismillahSkipped = true;
+          return false; // Skip Bismillah verse
+        }
+      }
+      return true;
+    }).toList();
+
+    // Add Bismillah banner + verses
+    final hasBismillah = surah.number != 9;
+    final totalItems = hasBismillah ? filteredVerses.length + 1 : filteredVerses.length;
+
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: provider.verses.length,
+      itemCount: totalItems,
       itemBuilder: (context, index) {
-        final verse = provider.verses[index];
-        final ayahNumber = verse['ayah'] ?? (index + 1);
+        // Show Bismillah banner as first item
+        if (hasBismillah && index == 0) {
+          return Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withOpacity(0.05)
+                  : const Color(0xFFF5EFE0),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark
+                    ? const Color(0xFF2E7D32).withOpacity(0.3)
+                    : const Color(0xFFD4C5A0),
+                width: 1.5,
+              ),
+            ),
+            child: Text(
+              'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
+              textAlign: TextAlign.center,
+              textDirection: TextDirection.rtl,
+              style: GoogleFonts.amiriQuran(
+                fontSize: 24,
+                fontWeight: FontWeight.w400,
+                color: isDark ? Colors.white : const Color(0xFF333333),
+                height: 1.8,
+              ),
+            ),
+          );
+        }
+
+        final verseIndex = hasBismillah ? index - 1 : index;
+        final verse = filteredVerses[verseIndex];
+        int ayahNumber = verse['ayah'] ?? (verseIndex + 1);
+        // If Bismillah was skipped (e.g. Al-Fatihah), renumber: ayah 2→1, 3→2, etc.
+        if (bismillahSkipped) ayahNumber = ayahNumber - 1;
 
         return _VerseCard(
           ayahNumber: ayahNumber,
