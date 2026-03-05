@@ -1,83 +1,96 @@
 import 'package:flutter/material.dart';
 import '../../core/services/database_service.dart';
+import '../recite/recite_provider.dart';
 
 class MemorizeProvider extends ChangeNotifier {
   final DatabaseService _db = DatabaseService();
 
-  int _selectedSurah = 1;
-  int _selectedAyah = 1;
-  int _totalAyahs = 7; // Default for Al-Fatiha
+  int _selectedSurahIndex = 0; // index into ReciteProvider.surahs
+  int _startAyah = 1;
+  int _endAyah = 7; // Default for Al-Fatiha
+  int _totalAyahs = 7;
+
+  // Session state
+  int _currentAyahIndex = 0; // index within the selected range
   Map<String, dynamic>? _currentVerse;
   bool _isVerseHidden = false;
   bool _isLoading = false;
   String? _error;
 
-  int get selectedSurah => _selectedSurah;
-  int get selectedAyah => _selectedAyah;
+  // Getters
+  int get selectedSurahIndex => _selectedSurahIndex;
+  SurahInfo get selectedSurah => ReciteProvider.surahs[_selectedSurahIndex];
+  int get startAyah => _startAyah;
+  int get endAyah => _endAyah;
   int get totalAyahs => _totalAyahs;
+  int get versesSelected => (_endAyah - _startAyah + 1).clamp(1, _totalAyahs);
+  int get currentAyahIndex => _currentAyahIndex;
+  int get currentAyahNumber => _startAyah + _currentAyahIndex;
   Map<String, dynamic>? get currentVerse => _currentVerse;
   bool get isVerseHidden => _isVerseHidden;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  bool get isFirstVerse => _currentAyahIndex == 0;
+  bool get isLastVerse => _currentAyahIndex >= (versesSelected - 1);
 
-  // Surah names list
-  static const List<String> surahNames = [
-    'Al-Fatiha', 'Al-Baqarah', 'Aal-Imran', 'An-Nisa', 'Al-Ma\'idah',
-    'Al-An\'am', 'Al-A\'raf', 'Al-Anfal', 'At-Tawbah', 'Yunus',
-    'Hud', 'Yusuf', 'Ar-Ra\'d', 'Ibrahim', 'Al-Hijr',
-    'An-Nahl', 'Al-Isra', 'Al-Kahf', 'Maryam', 'Taha',
-    'Al-Anbya', 'Al-Hajj', 'Al-Mu\'minun', 'An-Nur', 'Al-Furqan',
-    'Ash-Shu\'ara', 'An-Naml', 'Al-Qasas', 'Al-Ankabut', 'Ar-Rum',
-    'Luqman', 'As-Sajdah', 'Al-Ahzab', 'Saba', 'Fatir',
-    'Ya-Sin', 'As-Saffat', 'Sad', 'Az-Zumar', 'Ghafir',
-    'Fussilat', 'Ash-Shura', 'Az-Zukhruf', 'Ad-Dukhan', 'Al-Jathiyah',
-    'Al-Ahqaf', 'Muhammad', 'Al-Fath', 'Al-Hujurat', 'Qaf',
-    'Adh-Dhariyat', 'At-Tur', 'An-Najm', 'Al-Qamar', 'Ar-Rahman',
-    'Al-Waqi\'ah', 'Al-Hadid', 'Al-Mujadila', 'Al-Hashr', 'Al-Mumtahanah',
-    'As-Saf', 'Al-Jumu\'ah', 'Al-Munafiqun', 'At-Taghabun', 'At-Talaq',
-    'At-Tahrim', 'Al-Mulk', 'Al-Qalam', 'Al-Haqqah', 'Al-Ma\'arij',
-    'Nuh', 'Al-Jinn', 'Al-Muzzammil', 'Al-Muddaththir', 'Al-Qiyamah',
-    'Al-Insan', 'Al-Mursalat', 'An-Naba', 'An-Nazi\'at', 'Abasa',
-    'At-Takwir', 'Al-Infitar', 'Al-Mutaffifin', 'Al-Inshiqaq', 'Al-Buruj',
-    'At-Tariq', 'Al-A\'la', 'Al-Ghashiyah', 'Al-Fajr', 'Al-Balad',
-    'Ash-Shams', 'Al-Layl', 'Ad-Duhaa', 'Ash-Sharh', 'At-Tin',
-    'Al-Alaq', 'Al-Qadr', 'Al-Bayyinah', 'Az-Zalzalah', 'Al-Adiyat',
-    'Al-Qari\'ah', 'At-Takathur', 'Al-Asr', 'Al-Humazah', 'Al-Fil',
-    'Quraysh', 'Al-Ma\'un', 'Al-Kawthar', 'Al-Kafirun', 'An-Nasr',
-    'Al-Masad', 'Al-Ikhlas', 'Al-Falaq', 'An-Nas',
-  ];
+  // ── Setup Methods ──
 
-  Future<void> selectSurah(int surah) async {
-    _selectedSurah = surah;
-    _selectedAyah = 1;
-    _isVerseHidden = false;
+  Future<void> selectSurah(int index) async {
+    _selectedSurahIndex = index;
+    final surah = ReciteProvider.surahs[index];
+    _totalAyahs = surah.verseCount;
+    _startAyah = 1;
+    _endAyah = _totalAyahs;
     _error = null;
     notifyListeners();
-
-    // Get ayah count for this surah
-    _totalAyahs = await _db.getAyahCount(surah);
-    if (_totalAyahs == 0) _totalAyahs = 7; // fallback
-    notifyListeners();
-
-    await loadVerse();
   }
 
-  Future<void> selectAyah(int ayah) async {
-    _selectedAyah = ayah;
+  void incrementStart() {
+    if (_startAyah < _endAyah) {
+      _startAyah++;
+      notifyListeners();
+    }
+  }
+
+  void decrementStart() {
+    if (_startAyah > 1) {
+      _startAyah--;
+      notifyListeners();
+    }
+  }
+
+  void incrementEnd() {
+    if (_endAyah < _totalAyahs) {
+      _endAyah++;
+      notifyListeners();
+    }
+  }
+
+  void decrementEnd() {
+    if (_endAyah > _startAyah) {
+      _endAyah--;
+      notifyListeners();
+    }
+  }
+
+  // ── Session Methods ──
+
+  Future<void> startSession() async {
+    _currentAyahIndex = 0;
     _isVerseHidden = false;
-    notifyListeners();
-    await loadVerse();
+    await _loadCurrentVerse();
   }
 
-  Future<void> loadVerse() async {
+  Future<void> _loadCurrentVerse() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      _currentVerse = await _db.getVerse(_selectedSurah, _selectedAyah);
+      final ayahNum = _startAyah + _currentAyahIndex;
+      _currentVerse = await _db.getVerse(selectedSurah.number, ayahNum);
       if (_currentVerse == null) {
-        _error = 'Verse not found in database. Please ensure quran_verses table is populated.';
+        _error = 'Verse not found. Please ensure quran_verses table is populated.';
       }
     } catch (e) {
       _error = 'Error loading verse: $e';
@@ -92,22 +105,36 @@ class MemorizeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> nextVerse() async {
+    if (!isLastVerse) {
+      _currentAyahIndex++;
+      _isVerseHidden = false;
+      await _loadCurrentVerse();
+    }
+  }
+
+  Future<void> previousVerse() async {
+    if (!isFirstVerse) {
+      _currentAyahIndex--;
+      _isVerseHidden = false;
+      await _loadCurrentVerse();
+    }
+  }
+
   Future<void> markAsMemorized() async {
     try {
-      // Update user progress
       final todayProgress = await _db.getTodayProgress();
       final currentMemorized = (todayProgress?['verses_memorized'] as int?) ?? 0;
       await _db.upsertProgress({
         'verses_memorized': currentMemorized + 1,
       });
 
-      // Log activity
       await _db.logActivity(
         action: 'memorized_verse',
-        description: 'Memorized ${surahNames[_selectedSurah - 1]} : $_selectedAyah',
+        description: 'Memorized ${selectedSurah.name} : $currentAyahNumber',
         metadata: {
-          'surah': _selectedSurah,
-          'ayah': _selectedAyah,
+          'surah': selectedSurah.number,
+          'ayah': currentAyahNumber,
         },
       );
     } catch (e) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import 'bookmark_provider.dart';
@@ -32,8 +33,8 @@ class _BookmarkView extends StatelessWidget {
         ),
       ),
       body: provider.isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primaryGreen),
+          ? Center(
+              child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
             )
           : provider.bookmarks.isEmpty
               ? Center(
@@ -100,12 +101,12 @@ class _BookmarkView extends StatelessWidget {
                               width: 44,
                               height: 44,
                               decoration: BoxDecoration(
-                                color: AppColors.primaryGreen.withValues(alpha: 0.1),
+                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.bookmark,
-                                color: AppColors.primaryGreen,
+                                color: Theme.of(context).colorScheme.primary,
                                 size: 22,
                               ),
                             ),
@@ -138,7 +139,7 @@ class _BookmarkView extends StatelessWidget {
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                       textDirection: TextDirection.rtl,
-                                      style: TextStyle(
+                                      style: GoogleFonts.amiriQuran(
                                         fontSize: 14,
                                         color: isDark
                                             ? Colors.white.withValues(alpha: 0.7)

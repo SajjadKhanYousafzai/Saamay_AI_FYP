@@ -27,6 +27,7 @@ class _SurahDetailView extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<ReciteProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
@@ -37,10 +38,10 @@ class _SurahDetailView extends StatelessWidget {
           icon: Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: AppColors.primaryGreen.withOpacity(0.15),
+              color: primary.withOpacity(0.15),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.arrow_back, color: AppColors.primaryGreen, size: 20),
+            child: Icon(Icons.arrow_back, color: primary, size: 20),
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -52,11 +53,11 @@ class _SurahDetailView extends StatelessWidget {
           Container(
             margin: const EdgeInsets.only(right: 12),
             decoration: BoxDecoration(
-              color: AppColors.primaryGreen.withOpacity(0.15),
+              color: primary.withOpacity(0.15),
               borderRadius: BorderRadius.circular(10),
             ),
             child: IconButton(
-              icon: const Icon(Icons.refresh, color: AppColors.primaryGreen, size: 20),
+              icon: Icon(Icons.refresh, color: primary, size: 20),
               onPressed: () => provider.loadSurahVerses(surah.number),
             ),
           ),
@@ -82,68 +83,201 @@ class _SurahDetailView extends StatelessWidget {
   }
 
   Widget _buildHeaderCard(BuildContext context, bool isDark) {
+    final primary = Theme.of(context).colorScheme.primary;
+    // Create gradient variants from the theme primary color
+    final gradientDark = Color.lerp(primary, Colors.black, 0.15)!;
+    final gradientMid = primary;
+    final gradientLight = Color.lerp(primary, Colors.white, 0.25)!;
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
+        borderRadius: BorderRadius.circular(22),
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF3BAF8A), Color(0xFF2D9E7D), Color(0xFF1A7A5E)],
+          colors: [gradientDark, gradientMid, gradientLight],
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.menu_book, color: Colors.white.withOpacity(0.8), size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Reading',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            surah.name,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            surah.englishMeaning,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
-              fontSize: 16,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              '${surah.type} · ${surah.verseCount} Verses',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+        boxShadow: [
+          BoxShadow(
+            color: primary.withOpacity(0.35),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: Stack(
+          children: [
+            // Transparent book image overlay
+            Positioned(
+              right: -10,
+              bottom: -10,
+              child: Opacity(
+                opacity: 0.12,
+                child: Image.asset(
+                  'assets/images/book.png',
+                  width: 130,
+                  height: 130,
+                  fit: BoxFit.contain,
+                  color: Colors.white,
+                  colorBlendMode: BlendMode.srcIn,
+                ),
+              ),
+            ),
+            // Main content
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+              child: Row(
+                children: [
+                  // Arabic calligraphy on the left
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      surah.arabicName,
+                      textDirection: TextDirection.rtl,
+                      style: GoogleFonts.amiriQuran(
+                        fontSize: 26,
+                        color: Colors.white.withOpacity(0.95),
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 18),
+
+                  // Right side: name, meaning, badges
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Label
+                        Text(
+                          surah.type.toUpperCase(),
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.7),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+
+                        // Surah name
+                        Text(
+                          surah.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+
+                        // English meaning
+                        Text(
+                          surah.englishMeaning,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.75),
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Badges row
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            // Verse count badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '${surah.verseCount}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    'VERSES',
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.8),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.8,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // Surah number badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '${surah.number}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    'NUMBER',
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.8),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.8,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -160,16 +294,19 @@ class _SurahDetailView extends StatelessWidget {
       child: Row(
         children: [
           _buildToggleButton(
+            context: context,
             label: 'English',
             isSelected: provider.translationLang == 'en',
             onTap: () => provider.setTranslationLang('en'),
           ),
           _buildToggleButton(
+            context: context,
             label: 'Urdu',
             isSelected: provider.translationLang == 'ur',
             onTap: () => provider.setTranslationLang('ur'),
           ),
           _buildToggleButton(
+            context: context,
             label: 'None',
             isSelected: provider.translationLang == 'none',
             onTap: () => provider.setTranslationLang('none'),
@@ -180,6 +317,7 @@ class _SurahDetailView extends StatelessWidget {
   }
 
   Widget _buildToggleButton({
+    required BuildContext context,
     required String label,
     required bool isSelected,
     required VoidCallback onTap,
@@ -191,7 +329,7 @@ class _SurahDetailView extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.primaryGreen : Colors.transparent,
+            color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(25),
           ),
           child: Text(
@@ -211,8 +349,8 @@ class _SurahDetailView extends StatelessWidget {
   Widget _buildVerseList(
       BuildContext context, ReciteProvider provider, bool isDark) {
     if (provider.isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primaryGreen),
+      return Center(
+        child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
       );
     }
 
@@ -234,7 +372,7 @@ class _SurahDetailView extends StatelessWidget {
               ElevatedButton(
                 onPressed: () => provider.loadSurahVerses(surah.number),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                 ),
                 child: const Text('Retry', style: TextStyle(color: Colors.white)),
               ),
@@ -366,7 +504,7 @@ class _VerseCard extends StatelessWidget {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: AppColors.primaryGreen,
+                    color: Theme.of(context).colorScheme.primary,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Center(

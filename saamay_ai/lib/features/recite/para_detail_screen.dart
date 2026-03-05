@@ -28,6 +28,8 @@ class _ParaDetailView extends StatelessWidget {
     final provider = context.watch<ReciteProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    final primary = Theme.of(context).colorScheme.primary;
+
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
       appBar: AppBar(
@@ -37,10 +39,10 @@ class _ParaDetailView extends StatelessWidget {
           icon: Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: AppColors.primaryGreen.withOpacity(0.15),
+              color: primary.withOpacity(0.15),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.arrow_back, color: AppColors.primaryGreen, size: 20),
+            child: Icon(Icons.arrow_back, color: primary, size: 20),
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -70,8 +72,8 @@ class _ParaDetailView extends StatelessWidget {
 
   Widget _buildBody(BuildContext context, ReciteProvider provider, bool isDark) {
     if (provider.isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primaryGreen),
+      return Center(
+        child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
       );
     }
 
@@ -93,7 +95,7 @@ class _ParaDetailView extends StatelessWidget {
               ElevatedButton(
                 onPressed: () => provider.loadJuzVerses(para.number),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                 ),
                 child: const Text('Retry', style: TextStyle(color: Colors.white)),
               ),
@@ -346,7 +348,7 @@ class _QuranTextBlock extends StatelessWidget {
         text: ' \u06DD${_toArabicNumeral(ayahNum)} ',
         style: GoogleFonts.amiriQuran(
           fontSize: 22,
-          color: AppColors.primaryGreen,
+          color: Theme.of(context).colorScheme.primary,
           height: 2.4,
         ),
       ));

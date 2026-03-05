@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import 'retain_provider.dart';
@@ -51,7 +52,7 @@ class _RetainView extends StatelessWidget {
                 context,
                 label: 'Rate',
                 value: '${provider.successRate.toStringAsFixed(0)}%',
-                color: AppColors.primaryGreen,
+                color: Theme.of(context).colorScheme.primary,
                 isDark: isDark,
               ),
             ],
@@ -63,7 +64,7 @@ class _RetainView extends StatelessWidget {
             const Center(
               child: Padding(
                 padding: EdgeInsets.all(48),
-                child: CircularProgressIndicator(color: AppColors.primaryGreen),
+                child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
               ),
             )
           else if (provider.error != null)
@@ -161,10 +162,9 @@ class _RetainView extends StatelessWidget {
                           provider.currentQuizVerse!['text'] ?? '',
                           textAlign: TextAlign.center,
                           textDirection: TextDirection.rtl,
-                          style: const TextStyle(
+                          style: GoogleFonts.amiriQuran(
                             color: Colors.white,
                             fontSize: 26,
-                            fontWeight: FontWeight.w500,
                             height: 2.0,
                           ),
                         ),
@@ -201,7 +201,7 @@ class _RetainView extends StatelessWidget {
                   icon: const Icon(Icons.visibility),
                   label: const Text('Reveal Verse'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryGreen,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(

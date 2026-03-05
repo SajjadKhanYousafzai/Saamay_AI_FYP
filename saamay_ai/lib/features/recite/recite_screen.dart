@@ -44,12 +44,12 @@ class _ReciteScreenState extends State<ReciteScreen>
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryGreen.withOpacity(0.15),
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.arrow_back,
-                  color: AppColors.primaryGreen,
+                  color: Theme.of(context).colorScheme.primary,
                   size: 20,
                 ),
               ),
@@ -79,9 +79,9 @@ class _ReciteScreenState extends State<ReciteScreen>
           ),
           child: TabBar(
             controller: _tabController,
-            labelColor: AppColors.primaryGreen,
+            labelColor: Theme.of(context).colorScheme.primary,
             unselectedLabelColor: AppColors.textGrey,
-            indicatorColor: AppColors.primaryGreen,
+            indicatorColor: Theme.of(context).colorScheme.primary,
             indicatorWeight: 3,
             labelStyle: const TextStyle(
               fontWeight: FontWeight.w600,
