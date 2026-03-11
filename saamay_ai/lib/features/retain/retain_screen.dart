@@ -61,9 +61,9 @@ class _RetainView extends StatelessWidget {
 
           // ── Quiz Card ──
           if (provider.isLoading)
-            const Center(
+            Center(
               child: Padding(
-                padding: EdgeInsets.all(48),
+                padding: const EdgeInsets.all(48),
                 child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
               ),
             )
