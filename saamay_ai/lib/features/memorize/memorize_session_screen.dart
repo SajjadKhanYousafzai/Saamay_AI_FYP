@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -13,19 +14,29 @@ class MemorizeSessionScreen extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primary = Theme.of(context).colorScheme.primary;
     final surah = provider.selectedSurah;
-
-    final colorScheme = Theme.of(context).colorScheme;
     final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
-    final surfaceColor = colorScheme.surface;
-    final cardColor = Theme.of(context).cardTheme.color ?? (isDark ? AppColors.cardDark : AppColors.cardLight);
+    final cardColor = Theme.of(context).cardTheme.color ??
+        (isDark ? AppColors.cardDark : AppColors.cardLight);
 
     return Scaffold(
       backgroundColor: scaffoldBg,
       appBar: AppBar(
-        backgroundColor: primary,
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                primary,
+                Color.lerp(primary, Colors.black, 0.25)!,
+              ],
+            ),
+          ),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
           onPressed: () async {
             if (provider.isListening) await provider.stopListening();
             if (context.mounted) Navigator.of(context).pop();
@@ -35,7 +46,7 @@ class MemorizeSessionScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Chapter ${surah.name}',
+              surah.name,
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -43,20 +54,36 @@ class MemorizeSessionScreen extends StatelessWidget {
               ),
             ),
             Text(
-              'Verse ${provider.startAyah} - ${provider.endAyah}',
+              'Verse ${provider.startAyah} – ${provider.endAyah}',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withOpacity(0.75),
                 fontSize: 13,
               ),
             ),
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.tune, color: Colors.white),
-            onPressed: () {
-              // Settings bottom sheet could go here
-            },
+          // Progress indicator in AppBar
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withOpacity(0.2)),
+                ),
+                child: Text(
+                  '${provider.completedVerses}/${provider.verseStates.length}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -64,11 +91,10 @@ class MemorizeSessionScreen extends StatelessWidget {
         children: [
           // ── Scrollable verse area ──
           Expanded(
-            child: _buildBody(context, provider, isDark, primary),
+            child: _buildBody(context, provider, isDark, primary, cardColor),
           ),
-
           // ── Bottom section: Legend + Mic ──
-          _buildBottomSection(context, provider, isDark, primary),
+          _buildBottomSection(context, provider, isDark, primary, cardColor),
         ],
       ),
     );
@@ -79,6 +105,7 @@ class MemorizeSessionScreen extends StatelessWidget {
     MemorizeProvider provider,
     bool isDark,
     Color primary,
+    Color cardColor,
   ) {
     if (provider.isLoading) {
       return Center(child: CircularProgressIndicator(color: primary));
@@ -91,12 +118,20 @@ class MemorizeSessionScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: AppColors.warning),
-              const SizedBox(height: 12),
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.warning.withOpacity(0.1),
+                ),
+                child: const Icon(Icons.error_outline, size: 32, color: AppColors.warning),
+              ),
+              const SizedBox(height: 16),
               Text(
                 provider.error!,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textGrey),
+                style: TextStyle(color: AppColors.textGrey, fontSize: 15),
               ),
             ],
           ),
@@ -112,61 +147,58 @@ class MemorizeSessionScreen extends StatelessWidget {
 
     // Session complete
     if (provider.isSessionComplete) {
-      return _buildCompletionScreen(context, provider, isDark, primary);
+      return _buildCompletionScreen(context, provider, isDark, primary, cardColor);
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Column(
         children: [
           // ── Surah Header (ornate style) ──
           _buildSurahHeader(context, provider, isDark, primary),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
 
           // ── Bismillah ──
           if (provider.selectedSurah.number != 9)
-            _buildBismillah(context, isDark),
-          const SizedBox(height: 16),
+            _buildBismillah(context, isDark, primary, cardColor),
+          const SizedBox(height: 20),
 
           // ── Verse word blocks ──
           ...provider.verseStates.asMap().entries.map((entry) {
             final verseIndex = entry.key;
             final verse = entry.value;
             return Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: _buildVerseRow(context, verse, verseIndex, provider, isDark, primary),
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildVerseRow(context, verse, verseIndex, provider, isDark, primary, cardColor),
             );
           }),
 
-          // ── Progress badge ──
-          _buildProgressBadge(provider, primary),
           const SizedBox(height: 16),
         ],
       ),
     );
   }
 
+  // ═══════════════════════════════════════════════════
+  // ── SURAH HEADER ──
+  // ═══════════════════════════════════════════════════
   Widget _buildSurahHeader(
     BuildContext context,
     MemorizeProvider provider,
     bool isDark,
     Color primary,
   ) {
-    // Derive ornament palette from the current theme primary color
     final outerFrame = isDark
-        ? Color.lerp(primary, Colors.black, 0.7)!
+        ? Color.lerp(primary, Colors.black, 0.65)!
         : Color.lerp(primary, const Color(0xFFF5EFE0), 0.5)!;
-    final innerFrame = isDark
-        ? Color.lerp(primary, Colors.black, 0.6)!
-        : Color.lerp(primary, const Color(0xFFF5EFE0), 0.35)!;
     final panelBg = isDark
-        ? Color.lerp(primary, Colors.black, 0.85)!
-        : Color.lerp(primary, Colors.white, 0.85)!;
+        ? Color.lerp(primary, Colors.black, 0.82)!
+        : Color.lerp(primary, Colors.white, 0.88)!;
     final ornamentColor = isDark
-        ? Color.lerp(primary, Colors.white, 0.3)!
+        ? Color.lerp(primary, Colors.white, 0.35)!
         : Color.lerp(primary, const Color(0xFF8B7355), 0.4)!;
     final borderColor = isDark
-        ? primary.withOpacity(0.3)
+        ? primary.withOpacity(0.35)
         : Color.lerp(primary, const Color(0xFF8B7355), 0.3)!;
     final textColor = isDark ? Colors.white : const Color(0xFF2C1810);
 
@@ -174,57 +206,47 @@ class MemorizeSessionScreen extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         color: outerFrame,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borderColor, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: primary.withOpacity(isDark ? 0.15 : 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(7),
+        borderRadius: BorderRadius.circular(11),
         child: CustomPaint(
           painter: _OrnateHeaderPainter(
             ornamentColor: ornamentColor,
-            innerFrame: innerFrame,
+            innerFrame: outerFrame,
             isDark: isDark,
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
             child: Row(
               children: [
                 // Left ornament panel
-                _buildOrnamentPanel(ornamentColor, innerFrame, isDark),
-
-                // Center: Surah name in elegant frame
+                _buildOrnamentPanel(ornamentColor, outerFrame, isDark),
+                // Center: Surah name
                 Expanded(
                   child: Container(
                     margin: const EdgeInsets.symmetric(vertical: 4),
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
                     decoration: BoxDecoration(
                       color: panelBg,
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: ornamentColor.withOpacity(0.5),
+                        color: ornamentColor.withOpacity(0.4),
                         width: 1,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: ornamentColor.withOpacity(0.1),
-                          blurRadius: 4,
-                          spreadRadius: 1,
-                        ),
-                      ],
                     ),
                     child: Column(
                       children: [
-                        // Top decorative line
                         _buildDecorativeDivider(ornamentColor),
-                        const SizedBox(height: 6),
-                        // Arabic surah name
+                        const SizedBox(height: 8),
                         Text(
                           'سورة ${provider.selectedSurah.arabicName}',
                           textDirection: TextDirection.rtl,
@@ -235,16 +257,14 @@ class MemorizeSessionScreen extends StatelessWidget {
                             height: 1.4,
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        // Bottom decorative line
+                        const SizedBox(height: 8),
                         _buildDecorativeDivider(ornamentColor),
                       ],
                     ),
                   ),
                 ),
-
                 // Right ornament panel
-                _buildOrnamentPanel(ornamentColor, innerFrame, isDark),
+                _buildOrnamentPanel(ornamentColor, outerFrame, isDark),
               ],
             ),
           ),
@@ -261,32 +281,20 @@ class MemorizeSessionScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: innerFrame,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: ornamentColor.withOpacity(0.4),
-          width: 0.5,
-        ),
+        border: Border.all(color: ornamentColor.withOpacity(0.3), width: 0.5),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Ornamental floral motifs (using Unicode symbols)
           _buildMotif('❋', ornamentColor, 14),
           const SizedBox(height: 3),
           _buildMotif('✦', ornamentColor, 8),
           const SizedBox(height: 2),
-          Container(
-            width: 20,
-            height: 1,
-            color: ornamentColor.withOpacity(0.3),
-          ),
+          Container(width: 20, height: 1, color: ornamentColor.withOpacity(0.3)),
           const SizedBox(height: 2),
           _buildMotif('❀', ornamentColor, 12),
           const SizedBox(height: 2),
-          Container(
-            width: 20,
-            height: 1,
-            color: ornamentColor.withOpacity(0.3),
-          ),
+          Container(width: 20, height: 1, color: ornamentColor.withOpacity(0.3)),
           const SizedBox(height: 2),
           _buildMotif('✦', ornamentColor, 8),
           const SizedBox(height: 3),
@@ -297,14 +305,7 @@ class MemorizeSessionScreen extends StatelessWidget {
   }
 
   Widget _buildMotif(String char, Color color, double size) {
-    return Text(
-      char,
-      style: TextStyle(
-        color: color,
-        fontSize: size,
-        height: 1,
-      ),
-    );
+    return Text(char, style: TextStyle(color: color, fontSize: size, height: 1));
   }
 
   Widget _buildDecorativeDivider(Color color) {
@@ -316,20 +317,15 @@ class MemorizeSessionScreen extends StatelessWidget {
         Text('✧', style: TextStyle(color: color, fontSize: 8)),
         const SizedBox(width: 6),
         Container(
-          width: 6,
-          height: 6,
+          width: 6, height: 6,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(color: color.withOpacity(0.5), width: 0.8),
           ),
           child: Center(
             child: Container(
-              width: 2,
-              height: 2,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: color.withOpacity(0.6),
-              ),
+              width: 2, height: 2,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: color.withOpacity(0.6)),
             ),
           ),
         ),
@@ -341,25 +337,35 @@ class MemorizeSessionScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBismillah(BuildContext context, bool isDark) {
-    final primary = Theme.of(context).colorScheme.primary;
-    final cardBg = Theme.of(context).cardTheme.color ?? (isDark ? AppColors.cardDark : AppColors.cardLight);
+  // ═══════════════════════════════════════════════════
+  // ── BISMILLAH ──
+  // ═══════════════════════════════════════════════════
+  Widget _buildBismillah(BuildContext context, bool isDark, Color primary, Color cardBg) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
       decoration: BoxDecoration(
-        color: isDark ? cardBg : Color.lerp(primary, Colors.white, 0.9)!,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: primary.withOpacity(isDark ? 0.2 : 0.3),
+        gradient: LinearGradient(
+          colors: isDark
+              ? [cardBg, Color.lerp(cardBg, primary, 0.05)!]
+              : [Color.lerp(primary, Colors.white, 0.92)!, Color.lerp(primary, Colors.white, 0.96)!],
         ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: primary.withOpacity(isDark ? 0.15 : 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: primary.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Text(
         'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
         textAlign: TextAlign.center,
         textDirection: TextDirection.rtl,
         style: GoogleFonts.amiriQuran(
-          fontSize: 20,
+          fontSize: 22,
           color: isDark ? Colors.white : const Color(0xFF333333),
           height: 1.6,
         ),
@@ -367,6 +373,9 @@ class MemorizeSessionScreen extends StatelessWidget {
     );
   }
 
+  // ═══════════════════════════════════════════════════
+  // ── VERSE ROW ──
+  // ═══════════════════════════════════════════════════
   Widget _buildVerseRow(
     BuildContext context,
     VerseState verse,
@@ -374,47 +383,55 @@ class MemorizeSessionScreen extends StatelessWidget {
     MemorizeProvider provider,
     bool isDark,
     Color primary,
+    Color cardColor,
   ) {
     final isCurrent = verseIndex == provider.currentVerseIndex;
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: isCurrent
-            ? (isDark ? primary.withOpacity(0.05) : primary.withOpacity(0.03))
+            ? (isDark ? primary.withOpacity(0.06) : primary.withOpacity(0.04))
             : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: isCurrent
-            ? Border.all(color: primary.withOpacity(0.2), width: 1)
-            : null,
+            ? Border.all(color: primary.withOpacity(0.25), width: 1.5)
+            : Border.all(color: Colors.transparent),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // Ayah label (if current verse is being worked on)
+          // Ayah label badge (only for current verse)
           if (isCurrent && !verse.isCompleted)
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      'Ayah ${verse.ayahNumber}',
-                      style: TextStyle(
-                        color: primary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: primary.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: primary.withOpacity(0.2)),
                   ),
-                ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.mic_none, color: primary, size: 14),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Ayah ${verse.ayahNumber}',
+                        style: TextStyle(
+                          color: primary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
 
@@ -422,8 +439,8 @@ class MemorizeSessionScreen extends StatelessWidget {
           Directionality(
             textDirection: TextDirection.rtl,
             child: Wrap(
-              spacing: 6,
-              runSpacing: 6,
+              spacing: 7,
+              runSpacing: 8,
               alignment: WrapAlignment.start,
               children: [
                 // Ayah number marker
@@ -448,21 +465,26 @@ class MemorizeSessionScreen extends StatelessWidget {
         ? Color.lerp(primary, Colors.white, 0.3)!
         : Color.lerp(primary, Colors.brown, 0.3)!;
     return Container(
-      width: 28,
-      height: 28,
+      width: 30,
+      height: 30,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(
-          color: circleColor,
-          width: 1.5,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            circleColor.withOpacity(0.2),
+            circleColor.withOpacity(0.05),
+          ],
         ),
+        border: Border.all(color: circleColor, width: 1.5),
       ),
       alignment: Alignment.center,
       child: Text(
         '$number',
         style: TextStyle(
           color: circleColor,
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -474,11 +496,12 @@ class MemorizeSessionScreen extends StatelessWidget {
     Color textColor;
     String displayText;
     final accentHighlight = Color.lerp(primary, Colors.amber, 0.5)!;
+    Color? borderCol;
 
     switch (state) {
       case WordState.hidden:
         bgColor = isDark
-            ? primary.withOpacity(0.06)
+            ? primary.withOpacity(0.07)
             : Colors.grey.shade200;
         textColor = Colors.transparent;
         displayText = '•' * (word.length > 4 ? 4 : word.length).clamp(2, 5);
@@ -489,36 +512,38 @@ class MemorizeSessionScreen extends StatelessWidget {
             : accentHighlight.withOpacity(0.12);
         textColor = Colors.transparent;
         displayText = '•' * (word.length > 4 ? 4 : word.length).clamp(2, 5);
+        borderCol = accentHighlight.withOpacity(0.5);
         break;
       case WordState.correct:
-        bgColor = AppColors.success.withOpacity(isDark ? 0.2 : 0.15);
+        bgColor = AppColors.success.withOpacity(isDark ? 0.18 : 0.12);
         textColor = isDark ? Colors.white : const Color(0xFF333333);
         displayText = word;
+        borderCol = AppColors.success.withOpacity(0.3);
         break;
       case WordState.mistake:
-        bgColor = AppColors.error.withOpacity(isDark ? 0.2 : 0.15);
+        bgColor = AppColors.error.withOpacity(isDark ? 0.18 : 0.12);
         textColor = isDark ? Colors.white : const Color(0xFF333333);
         displayText = word;
+        borderCol = AppColors.error.withOpacity(0.3);
         break;
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(8),
-        border: state == WordState.current
-            ? Border.all(color: accentHighlight.withOpacity(0.5), width: 1.5)
-            : null,
+        borderRadius: BorderRadius.circular(10),
+        border: borderCol != null ? Border.all(color: borderCol, width: 1.5) : null,
       ),
       child: state == WordState.hidden || state == WordState.current
           ? Text(
               displayText,
               style: TextStyle(
-                color: isDark ? Colors.white30 : Colors.grey.shade400,
+                color: isDark ? Colors.white24 : Colors.grey.shade400,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                letterSpacing: 2,
+                letterSpacing: 3,
               ),
             )
           : Text(
@@ -532,44 +557,43 @@ class MemorizeSessionScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProgressBadge(MemorizeProvider provider, Color primary) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      decoration: BoxDecoration(
-        color: primary.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: primary.withOpacity(0.2)),
-      ),
-      child: Text(
-        'Progress: ${provider.completedVerses}/${provider.verseStates.length} verses',
-        style: TextStyle(
-          color: primary,
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
+  // ═══════════════════════════════════════════════════
+  // ── BOTTOM SECTION ──
+  // ═══════════════════════════════════════════════════
   Widget _buildBottomSection(
     BuildContext context,
     MemorizeProvider provider,
     bool isDark,
     Color primary,
+    Color cardColor,
   ) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        border: Border(
-          top: BorderSide(
-            color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade200,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
           ),
-        ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Handle bar
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white.withOpacity(0.15) : Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 14),
+
           // Legend row
           Wrap(
             alignment: WrapAlignment.center,
@@ -585,21 +609,26 @@ class MemorizeSessionScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           // Status text
-          Text(
-            provider.isListening
-                ? 'Listening... recite the verse'
-                : (provider.isSessionComplete
-                    ? 'Session complete! 🎉'
-                    : 'Tap to start reciting'),
-            style: TextStyle(
-              color: isDark ? Colors.white70 : Colors.black54,
-              fontSize: 14,
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: Text(
+              provider.isListening
+                  ? 'Listening... recite the verse'
+                  : (provider.isSessionComplete
+                      ? 'Session complete! 🎉'
+                      : 'Tap to start reciting'),
+              key: ValueKey(provider.isListening.toString() + provider.isSessionComplete.toString()),
+              style: TextStyle(
+                color: provider.isListening ? primary : (isDark ? Colors.white60 : Colors.black45),
+                fontSize: 14,
+                fontWeight: provider.isListening ? FontWeight.w600 : FontWeight.normal,
+              ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
           // Action row: Skip + Mic + Reveal
           Row(
@@ -607,17 +636,15 @@ class MemorizeSessionScreen extends StatelessWidget {
             children: [
               // Skip word button
               if (!provider.isSessionComplete)
-                IconButton(
-                  onPressed: provider.skipWord,
-                  icon: Icon(
-                    Icons.skip_next,
-                    color: isDark ? Colors.white54 : Colors.black38,
-                    size: 28,
-                  ),
-                  tooltip: 'Skip word',
+                _buildActionButton(
+                  icon: Icons.skip_next_rounded,
+                  label: 'Skip',
+                  onTap: provider.skipWord,
+                  isDark: isDark,
+                  primary: primary,
                 ),
 
-              const SizedBox(width: 16),
+              const SizedBox(width: 20),
 
               // Microphone button (animated)
               _AnimatedMicButton(
@@ -627,20 +654,56 @@ class MemorizeSessionScreen extends StatelessWidget {
                 onTap: provider.toggleListening,
               ),
 
-              const SizedBox(width: 16),
+              const SizedBox(width: 20),
 
               // Reveal word button
               if (!provider.isSessionComplete)
-                IconButton(
-                  onPressed: provider.revealCurrentWord,
-                  icon: Icon(
-                    Icons.visibility,
-                    color: isDark ? Colors.white54 : Colors.black38,
-                    size: 28,
-                  ),
-                  tooltip: 'Reveal word',
+                _buildActionButton(
+                  icon: Icons.visibility_rounded,
+                  label: 'Reveal',
+                  onTap: provider.revealCurrentWord,
+                  isDark: isDark,
+                  primary: primary,
                 ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    required bool isDark,
+    required Color primary,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isDark ? Colors.white.withOpacity(0.06) : Colors.grey.shade100,
+              border: Border.all(
+                color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade300,
+              ),
+            ),
+            child: Icon(icon, color: isDark ? Colors.white60 : Colors.black45, size: 22),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: isDark ? Colors.white38 : Colors.black38,
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -651,10 +714,9 @@ class MemorizeSessionScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade300,
-        ),
+        borderRadius: BorderRadius.circular(20),
+        color: color.withOpacity(0.08),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -665,6 +727,9 @@ class MemorizeSessionScreen extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: color,
+              boxShadow: [
+                BoxShadow(color: color.withOpacity(0.4), blurRadius: 4),
+              ],
             ),
           ),
           const SizedBox(width: 6),
@@ -681,13 +746,16 @@ class MemorizeSessionScreen extends StatelessWidget {
     );
   }
 
+  // ═══════════════════════════════════════════════════
+  // ── COMPLETION SCREEN ──
+  // ═══════════════════════════════════════════════════
   Widget _buildCompletionScreen(
     BuildContext context,
     MemorizeProvider provider,
     bool isDark,
     Color primary,
+    Color cardColor,
   ) {
-    // Calculate stats
     int totalCorrect = 0;
     int totalMistakes = 0;
     for (final verse in provider.verseStates) {
@@ -703,24 +771,41 @@ class MemorizeSessionScreen extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          const SizedBox(height: 32),
-          Icon(Icons.celebration, size: 64, color: primary),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
+
+          // Trophy icon with glow
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [primary, Color.lerp(primary, Colors.amber, 0.3)!],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: primary.withOpacity(0.35),
+                  blurRadius: 24,
+                  spreadRadius: 4,
+                ),
+              ],
+            ),
+            child: const Icon(Icons.emoji_events, size: 40, color: Colors.white),
+          ),
+          const SizedBox(height: 20),
+
           Text(
             'Session Complete!',
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 26,
               fontWeight: FontWeight.bold,
               color: isDark ? Colors.white : AppColors.textDark,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            '${provider.selectedSurah.name} — Ayah ${provider.startAyah}-${provider.endAyah}',
-            style: TextStyle(
-              color: AppColors.textGrey,
-              fontSize: 15,
-            ),
+            '${provider.selectedSurah.name} — Ayah ${provider.startAyah}–${provider.endAyah}',
+            style: TextStyle(color: AppColors.textGrey, fontSize: 15),
           ),
           const SizedBox(height: 32),
 
@@ -734,12 +819,12 @@ class MemorizeSessionScreen extends StatelessWidget {
               _statCard('Mistakes', '$totalMistakes', AppColors.error, isDark),
             ],
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 36),
 
           // Save & Exit button
           SizedBox(
             width: double.infinity,
-            height: 52,
+            height: 54,
             child: ElevatedButton.icon(
               onPressed: () async {
                 await provider.saveProgress();
@@ -754,8 +839,10 @@ class MemorizeSessionScreen extends StatelessWidget {
                 backgroundColor: primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(16),
                 ),
+                elevation: 4,
+                shadowColor: primary.withOpacity(0.4),
               ),
             ),
           ),
@@ -767,11 +854,18 @@ class MemorizeSessionScreen extends StatelessWidget {
   Widget _statCard(String label, String value, Color color, bool isDark) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(14),
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: color.withOpacity(0.2)),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           children: [
@@ -779,7 +873,7 @@ class MemorizeSessionScreen extends StatelessWidget {
               value,
               style: TextStyle(
                 color: color,
-                fontSize: 22,
+                fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -798,7 +892,9 @@ class MemorizeSessionScreen extends StatelessWidget {
   }
 }
 
-/// Premium animated microphone button with pulsing rings when listening
+// ═══════════════════════════════════════════════════
+// ── ANIMATED MIC BUTTON ──
+// ═══════════════════════════════════════════════════
 class _AnimatedMicButton extends StatefulWidget {
   final bool isListening;
   final bool isDisabled;
@@ -827,7 +923,6 @@ class _AnimatedMicButtonState extends State<_AnimatedMicButton>
   void initState() {
     super.initState();
 
-    // Pulse animation (loops when listening)
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -836,7 +931,6 @@ class _AnimatedMicButtonState extends State<_AnimatedMicButton>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeOut),
     );
 
-    // Scale animation (bounce on tap)
     _scaleController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 150),
@@ -886,31 +980,24 @@ class _AnimatedMicButtonState extends State<_AnimatedMicButton>
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Outer pulse ring 3 (largest)
-                  if (widget.isListening)
-                    _buildPulseRing(82, activeColor, _pulseAnim.value, 0.0),
+                  // Pulse rings
+                  if (widget.isListening) ...[
+                    _buildPulseRing(84, activeColor, _pulseAnim.value, 0.0),
+                    _buildPulseRing(76, activeColor, _pulseAnim.value, 0.15),
+                    _buildPulseRing(70, activeColor, _pulseAnim.value, 0.3),
+                  ],
 
-                  // Outer pulse ring 2
-                  if (widget.isListening)
-                    _buildPulseRing(74, activeColor, _pulseAnim.value, 0.15),
-
-                  // Inner pulse ring 1
-                  if (widget.isListening)
-                    _buildPulseRing(68, activeColor, _pulseAnim.value, 0.3),
-
-                  // Glow background (always visible, stronger when listening)
+                  // Glow
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
-                    width: 64,
-                    height: 64,
+                    width: 66,
+                    height: 66,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: activeColor.withOpacity(
-                            widget.isListening ? 0.5 : 0.25,
-                          ),
-                          blurRadius: widget.isListening ? 24 : 12,
+                          color: activeColor.withOpacity(widget.isListening ? 0.5 : 0.2),
+                          blurRadius: widget.isListening ? 26 : 12,
                           spreadRadius: widget.isListening ? 4 : 0,
                         ),
                       ],
@@ -920,18 +1007,15 @@ class _AnimatedMicButtonState extends State<_AnimatedMicButton>
                   // Main button
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
-                    width: 64,
-                    height: 64,
+                    width: 66,
+                    height: 66,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: widget.isListening
-                            ? [
-                                AppColors.error,
-                                Color.lerp(AppColors.error, Colors.red.shade900, 0.3)!,
-                              ]
+                            ? [AppColors.error, Color.lerp(AppColors.error, Colors.red.shade900, 0.3)!]
                             : [
                                 Color.lerp(widget.primary, Colors.white, 0.15)!,
                                 widget.primary,
@@ -941,10 +1025,8 @@ class _AnimatedMicButtonState extends State<_AnimatedMicButton>
                     ),
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 200),
-                      transitionBuilder: (child, animation) => ScaleTransition(
-                        scale: animation,
-                        child: child,
-                      ),
+                      transitionBuilder: (child, animation) =>
+                          ScaleTransition(scale: animation, child: child),
                       child: Icon(
                         widget.isListening ? Icons.stop_rounded : Icons.mic,
                         key: ValueKey(widget.isListening),
@@ -981,7 +1063,9 @@ class _AnimatedMicButtonState extends State<_AnimatedMicButton>
   }
 }
 
-/// CustomPainter for the ornate Mushaf-style header background decorations
+// ═══════════════════════════════════════════════════
+// ── ORNATE HEADER PAINTER ──
+// ═══════════════════════════════════════════════════
 class _OrnateHeaderPainter extends CustomPainter {
   final Color ornamentColor;
   final Color innerFrame;
@@ -1000,20 +1084,15 @@ class _OrnateHeaderPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 
-    // Inner border frame
     final frameRect = RRect.fromRectAndRadius(
       Rect.fromLTWH(3, 3, size.width - 6, size.height - 6),
       const Radius.circular(5),
     );
     canvas.drawRRect(frameRect, paint);
 
-    // Corner decorative curves (top-left)
     _drawCornerDecor(canvas, paint, 0, 0, 1, 1);
-    // Top-right
     _drawCornerDecor(canvas, paint, size.width, 0, -1, 1);
-    // Bottom-left
     _drawCornerDecor(canvas, paint, 0, size.height, 1, -1);
-    // Bottom-right
     _drawCornerDecor(canvas, paint, size.width, size.height, -1, -1);
   }
 
