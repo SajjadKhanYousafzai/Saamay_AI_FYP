@@ -147,15 +147,48 @@ class DatabaseService {
     return response?['ayah'] ?? 0;
   }
 
-  // ── Bookmarks ──
+  // ── Bookmark Collections ──
 
-  Future<List<Map<String, dynamic>>> getBookmarks() async {
+  Future<List<Map<String, dynamic>>> getBookmarkFolders() async {
     if (_userId == null) return [];
     final response = await _client
-        .from(AppStrings.tableBookmarks)
+        .from('bookmark_collections')
         .select()
         .eq('user_id', _userId!)
         .order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  Future<Map<String, dynamic>?> createBookmarkFolder(String name) async {
+    if (_userId == null) return null;
+    final response = await _client.from('bookmark_collections').insert({
+      'user_id': _userId,
+      'name': name,
+    }).select().maybeSingle();
+    return response;
+  }
+
+  Future<void> deleteBookmarkFolder(String folderId) async {
+    await _client.from('bookmark_collections').delete().eq('id', folderId);
+  }
+
+  // ── Bookmarks ──
+
+  Future<List<Map<String, dynamic>>> getBookmarks({String? folderId}) async {
+    if (_userId == null) return [];
+    
+    var query = _client
+        .from(AppStrings.tableBookmarks)
+        .select()
+        .eq('user_id', _userId!);
+        
+    if (folderId != null) {
+      query = query.eq('collection_id', folderId);
+    } else {
+      query = query.isFilter('collection_id', null);
+    }
+    
+    final response = await query.order('created_at', ascending: false);
     return List<Map<String, dynamic>>.from(response);
   }
 
@@ -164,6 +197,7 @@ class DatabaseService {
     required int ayahNumber,
     required String surahName,
     String? ayahText,
+    String? folderId,
   }) async {
     if (_userId == null) return;
     await _client.from(AppStrings.tableBookmarks).upsert({
@@ -172,6 +206,7 @@ class DatabaseService {
       'ayah_number': ayahNumber,
       'surah_name': surahName,
       'ayah_text': ayahText,
+      if (folderId != null) 'collection_id': folderId,
     });
   }
 
@@ -226,6 +261,16 @@ class DatabaseService {
         .eq('user_id', _userId!)
         .gte('date', weekAgo.toIso8601String().split('T').first)
         .order('date');
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  Future<List<Map<String, dynamic>>> getFullProgressHistory() async {
+    if (_userId == null) return [];
+    final response = await _client
+        .from(AppStrings.tableUserProgress)
+        .select()
+        .eq('user_id', _userId!)
+        .order('date', ascending: false);
     return List<Map<String, dynamic>>.from(response);
   }
 

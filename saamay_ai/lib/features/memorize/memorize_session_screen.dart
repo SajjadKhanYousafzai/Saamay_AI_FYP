@@ -408,30 +408,52 @@ class MemorizeSessionScreen extends StatelessWidget {
           if (isCurrent && !verse.isCompleted)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: primary.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: primary.withOpacity(0.2)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: primary.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: primary.withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.mic_none, color: primary, size: 14),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Ayah ${verse.ayahNumber}',
+                          style: TextStyle(
+                            color: primary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.mic_none, color: primary, size: 14),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Ayah ${verse.ayahNumber}',
+                  if (verse.lastAccuracy != null) ...[
+                    const SizedBox(width: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: verse.lastAccuracy! >= 80 ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: verse.lastAccuracy! >= 80 ? Colors.green : Colors.red),
+                      ),
+                      child: Text(
+                        '${verse.lastAccuracy!.toStringAsFixed(0)}%',
                         style: TextStyle(
-                          color: primary,
+                          color: verse.lastAccuracy! >= 80 ? Colors.green : Colors.red,
                           fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                  ],
+                ],
               ),
             ),
 
@@ -500,6 +522,7 @@ class MemorizeSessionScreen extends StatelessWidget {
 
     switch (state) {
       case WordState.hidden:
+      case WordState.pending:
         bgColor = isDark
             ? primary.withOpacity(0.07)
             : Colors.grey.shade200;
@@ -615,20 +638,37 @@ class MemorizeSessionScreen extends StatelessWidget {
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             child: Text(
-              provider.isListening
-                  ? 'Listening... recite the verse'
-                  : (provider.isSessionComplete
-                      ? 'Session complete! 🎉'
-                      : 'Tap to start reciting'),
-              key: ValueKey(provider.isListening.toString() + provider.isSessionComplete.toString()),
+              provider.isPlayingCorrection
+                  ? '🔊 Listening to original recitation...'
+                  : provider.isListening
+                      ? 'Listening... recite the verse'
+                      : (provider.isSessionComplete
+                          ? 'Session complete! 🎉'
+                          : 'Tap to start reciting'),
+              key: ValueKey(provider.isListening.toString() + provider.isSessionComplete.toString() + provider.isPlayingCorrection.toString()),
               style: TextStyle(
-                color: provider.isListening ? primary : (isDark ? Colors.white60 : Colors.black45),
+                color: provider.isPlayingCorrection || provider.isListening ? primary : (isDark ? Colors.white60 : Colors.black45),
                 fontSize: 14,
-                fontWeight: provider.isListening ? FontWeight.w600 : FontWeight.normal,
+                fontWeight: provider.isPlayingCorrection || provider.isListening ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
           ),
           const SizedBox(height: 16),
+          
+          if (provider.lastRecognizedText.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Text(
+                provider.lastRecognizedText,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isDark ? Colors.white54 : Colors.black54,
+                  fontSize: 13,
+                  fontStyle: FontStyle.italic,
+                  height: 1.4,
+                ),
+              ),
+            ),
 
           // Action row: Skip + Mic + Reveal
           Row(
@@ -639,7 +679,7 @@ class MemorizeSessionScreen extends StatelessWidget {
                 _buildActionButton(
                   icon: Icons.skip_next_rounded,
                   label: 'Skip',
-                  onTap: provider.skipWord,
+                  onTap: provider.skipVerse,
                   isDark: isDark,
                   primary: primary,
                 ),
@@ -649,7 +689,7 @@ class MemorizeSessionScreen extends StatelessWidget {
               // Microphone button (animated)
               _AnimatedMicButton(
                 isListening: provider.isListening,
-                isDisabled: provider.isSessionComplete,
+                isDisabled: provider.isSessionComplete || provider.isPlayingCorrection,
                 primary: primary,
                 onTap: provider.toggleListening,
               ),
@@ -661,7 +701,7 @@ class MemorizeSessionScreen extends StatelessWidget {
                 _buildActionButton(
                   icon: Icons.visibility_rounded,
                   label: 'Reveal',
-                  onTap: provider.revealCurrentWord,
+                  onTap: provider.revealCurrentVerse,
                   isDark: isDark,
                   primary: primary,
                 ),

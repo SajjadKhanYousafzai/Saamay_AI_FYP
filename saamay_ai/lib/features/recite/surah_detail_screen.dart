@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/backend_service.dart';
 import 'recite_provider.dart';
+import '../bookmark/folder_selection_sheet.dart';
 
 class SurahDetailScreen extends StatelessWidget {
   final SurahInfo surah;
@@ -409,7 +412,7 @@ class _SurahDetailView extends StatelessWidget {
           return Container(
             width: double.infinity,
             margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
             decoration: BoxDecoration(
               color: isDark
                   ? Colors.white.withOpacity(0.05)
@@ -422,28 +425,25 @@ class _SurahDetailView extends StatelessWidget {
                 width: 1.5,
               ),
             ),
-            child: Text(
-              'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
-              textAlign: TextAlign.center,
-              textDirection: TextDirection.rtl,
-              style: GoogleFonts.amiriQuran(
-                fontSize: 24,
-                fontWeight: FontWeight.w400,
-                color: isDark ? Colors.white : const Color(0xFF333333),
-                height: 1.8,
-              ),
+            child: Image.asset(
+              'assets/images/BM.png',
+              height: 40,
+              fit: BoxFit.contain,
+              color: isDark ? Colors.white : null,
             ),
           );
         }
 
         final verseIndex = hasBismillah ? index - 1 : index;
         final verse = filteredVerses[verseIndex];
-        int ayahNumber = verse['ayah'] ?? (verseIndex + 1);
+        final int originalAyahNumber = verse['ayah'] ?? (verseIndex + 1);
+        int displayAyahNumber = originalAyahNumber;
         // If Bismillah was skipped (e.g. Al-Fatihah), renumber: ayah 2→1, 3→2, etc.
-        if (bismillahSkipped) ayahNumber = ayahNumber - 1;
+        if (bismillahSkipped) displayAyahNumber = displayAyahNumber - 1;
 
         return _VerseCard(
-          ayahNumber: ayahNumber,
+          ayahNumber: displayAyahNumber,
+          originalAyahNumber: originalAyahNumber,
           arabicText: verse['text'] ?? '',
           translationEn: verse['translation_en'],
           translationUr: verse['translation_ur'],
@@ -457,8 +457,9 @@ class _SurahDetailView extends StatelessWidget {
   }
 }
 
-class _VerseCard extends StatelessWidget {
+class _VerseCard extends StatefulWidget {
   final int ayahNumber;
+  final int originalAyahNumber;
   final String arabicText;
   final String? translationEn;
   final String? translationUr;
@@ -469,6 +470,7 @@ class _VerseCard extends StatelessWidget {
 
   const _VerseCard({
     required this.ayahNumber,
+    required this.originalAyahNumber,
     required this.arabicText,
     this.translationEn,
     this.translationUr,
@@ -479,14 +481,56 @@ class _VerseCard extends StatelessWidget {
   });
 
   @override
+  State<_VerseCard> createState() => _VerseCardState();
+}
+
+class _VerseCardState extends State<_VerseCard> {
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  bool _isPlaying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _audioPlayer.onPlayerComplete.listen((_) {
+      if (mounted) setState(() => _isPlaying = false);
+    });
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  Future<void> _togglePlay() async {
+    if (_isPlaying) {
+      await _audioPlayer.stop();
+      setState(() => _isPlaying = false);
+    } else {
+      final url = BackendService.getAyahAudioUrl(widget.surahNumber, widget.originalAyahNumber);
+      setState(() => _isPlaying = true);
+      try {
+        await _audioPlayer.play(UrlSource(url));
+      } catch (e) {
+        setState(() => _isPlaying = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to play audio')),
+          );
+        }
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        color: widget.isDark ? AppColors.cardDark : AppColors.cardLight,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark
+          color: widget.isDark
               ? Colors.white.withOpacity(0.06)
               : Colors.grey.shade200,
         ),
@@ -509,7 +553,7 @@ class _VerseCard extends StatelessWidget {
                   ),
                   child: Center(
                     child: Text(
-                      '$ayahNumber',
+                      '${widget.ayahNumber}',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 13,
@@ -522,22 +566,30 @@ class _VerseCard extends StatelessWidget {
                 // Share
                 _ActionIcon(
                   icon: Icons.share_outlined,
-                  isDark: isDark,
+                  isDark: widget.isDark,
                   onTap: () {},
                 ),
                 const SizedBox(width: 6),
                 // Play
                 _ActionIcon(
-                  icon: Icons.play_arrow_rounded,
-                  isDark: isDark,
-                  onTap: () {},
+                  icon: _isPlaying ? Icons.stop_rounded : Icons.play_arrow_rounded,
+                  isDark: widget.isDark,
+                  onTap: _togglePlay,
                 ),
                 const SizedBox(width: 6),
                 // Bookmark
                 _ActionIcon(
                   icon: Icons.bookmark_border,
-                  isDark: isDark,
-                  onTap: () {},
+                  isDark: widget.isDark,
+                  onTap: () {
+                    FolderSelectionSheet.show(
+                      context,
+                      surahNumber: widget.surahNumber,
+                      ayahNumber: widget.ayahNumber,
+                      surahName: widget.surahName,
+                      ayahText: widget.arabicText,
+                    );
+                  },
                 ),
               ],
             ),
@@ -547,20 +599,20 @@ class _VerseCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
             child: Text(
-              arabicText,
+              widget.arabicText,
               textAlign: TextAlign.right,
               textDirection: TextDirection.rtl,
               style: GoogleFonts.amiriQuran(
                 fontSize: 26,
                 fontWeight: FontWeight.w400,
                 height: 2.2,
-                color: isDark ? Colors.white : Colors.black87,
+                color: widget.isDark ? Colors.white : Colors.black87,
               ),
             ),
           ),
 
           // Translation
-          if (translationLang != 'none') ...[
+          if (widget.translationLang != 'none') ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
               child: Text(
@@ -580,10 +632,10 @@ class _VerseCard extends StatelessWidget {
   }
 
   String _getTranslation() {
-    if (translationLang == 'en') {
-      return translationEn ?? 'Translation not available';
-    } else if (translationLang == 'ur') {
-      return translationUr ?? 'Translation not available';
+    if (widget.translationLang == 'en') {
+      return widget.translationEn ?? 'Translation not available';
+    } else if (widget.translationLang == 'ur') {
+      return widget.translationUr ?? 'Translation not available';
     }
     return '';
   }

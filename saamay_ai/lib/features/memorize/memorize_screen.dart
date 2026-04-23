@@ -438,11 +438,11 @@ class _MemorizeView extends StatelessWidget {
         ),
         // Arrow
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 6),
           child: Icon(
             Icons.arrow_forward,
             color: isDark ? Colors.white38 : Colors.black38,
-            size: 24,
+            size: 22,
           ),
         ),
         // End counter
