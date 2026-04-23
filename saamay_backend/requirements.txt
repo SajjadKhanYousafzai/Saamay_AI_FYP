@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+transformers
+torch==2.9.1+cpu -f https://download.pytorch.org/whl/torch_stable.html
+python-multipart
+huggingface-hub
+torchaudio
+librosa
+soundfile
+pydub
+peft
