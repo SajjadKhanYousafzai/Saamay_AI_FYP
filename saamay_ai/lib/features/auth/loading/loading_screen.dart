@@ -67,27 +67,25 @@ class _LoadingScreenState extends State<LoadingScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    // Bismillah
+                    Image.asset(
+                      'assets/images/BM.png',
+                      width: 200,
+                      height: 40,
+                      fit: BoxFit.contain,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(height: 20),
                     // App icon
                     Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          colors: AppColors.heroGradient,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primaryGreen.withValues(alpha: 0.4),
-                            blurRadius: 30,
-                            spreadRadius: 5,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.auto_stories,
-                        color: Colors.white,
-                        size: 48,
+                      width: 120,
+                      height: 120,
+                      alignment: Alignment.center,
+                      child: Image.asset(
+                        'assets/images/book.png',
+                        width: 120,
+                        height: 120,
+                        fit: BoxFit.contain,
                       ),
                     ),
                     const SizedBox(height: 24),

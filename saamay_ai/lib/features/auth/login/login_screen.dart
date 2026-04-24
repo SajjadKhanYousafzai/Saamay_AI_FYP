@@ -164,19 +164,21 @@ class _LoginScreenState extends State<LoginScreen>
                     children: [
                       const SizedBox(height: 70),
 
-                      // ── Book logo with glow ──
+                      // ── Bismillah ──
+                      Image.asset(
+                        'assets/images/BM.png',
+                        width: 200,
+                        height: 40,
+                        fit: BoxFit.contain,
+                        color: isDark ? Colors.white : null,
+                      ),
+                      const SizedBox(height: 20),
+
+                      // ── Book logo ──
                       Container(
                         width: 120,
                         height: 120,
-                        decoration: BoxDecoration(
-                          boxShadow: [
-                            BoxShadow(
-                              color: primary.withOpacity(0.3),
-                              blurRadius: 30,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
+                        alignment: Alignment.center,
                         child: Image.asset(
                           'assets/images/book.png',
                           fit: BoxFit.contain,

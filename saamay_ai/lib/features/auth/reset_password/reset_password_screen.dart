@@ -190,32 +190,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
                           children: [
                             const SizedBox(height: 40),
 
-                            // ── Logo icon with glow ──
+                            // ── Book logo ──
                             Container(
                               width: 80,
                               height: 80,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    primary,
-                                    Color.lerp(primary, Colors.black, 0.3)!,
-                                  ],
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: primary.withOpacity(0.4),
-                                    blurRadius: 28,
-                                    spreadRadius: 4,
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.lock_reset,
-                                color: Colors.white,
-                                size: 38,
+                              alignment: Alignment.center,
+                              child: Image.asset(
+                                'assets/images/book.png',
+                                fit: BoxFit.contain,
                               ),
                             ),
                             const SizedBox(height: 28),

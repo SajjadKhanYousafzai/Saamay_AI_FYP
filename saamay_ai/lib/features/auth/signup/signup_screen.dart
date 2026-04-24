@@ -200,32 +200,14 @@ class _SignUpScreenState extends State<SignUpScreen>
                           children: [
                             const SizedBox(height: 12),
 
-                            // ── Logo icon with glow ──
+                            // ── Book logo ──
                             Container(
-                              width: 72,
-                              height: 72,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    primary,
-                                    Color.lerp(primary, Colors.black, 0.3)!,
-                                  ],
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: primary.withOpacity(0.4),
-                                    blurRadius: 24,
-                                    spreadRadius: 3,
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.person_add_alt_1,
-                                color: Colors.white,
-                                size: 34,
+                              width: 80,
+                              height: 80,
+                              alignment: Alignment.center,
+                              child: Image.asset(
+                                'assets/images/book.png',
+                                fit: BoxFit.contain,
                               ),
                             ),
                             const SizedBox(height: 22),
