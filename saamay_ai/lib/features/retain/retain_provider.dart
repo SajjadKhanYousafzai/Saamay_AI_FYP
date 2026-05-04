@@ -8,6 +8,13 @@ import '../../core/services/backend_service.dart';
 import '../../core/services/database_service.dart';
 import '../recite/recite_provider.dart';
 
+/// Check if text is Bismillah by stripping diacritics
+bool _isBismillahText(String text) {
+  // Remove all Arabic diacritical marks (tashkeel)
+  final stripped = text.replaceAll(RegExp(r'[\u064B-\u065F\u0670\u06D6-\u06ED\u0610-\u061A\u08D3-\u08E1\u08E3-\u08FF\u0300-\u036F]'), '');
+  return stripped.trimLeft().startsWith('بسم');
+}
+
 /// Word-level state for retain quiz
 enum RetainWordState { hidden, correct, mistake }
 
@@ -69,6 +76,8 @@ class RetainProvider extends ChangeNotifier {
   int get selectedSurahIndex => _selectedSurahIndex;
   int get selectedAyah => _selectedAyah;
   SurahInfo get selectedSurah => ReciteProvider.surahs[_selectedSurahIndex];
+  /// Max ayah excluding Bismillah (all surahs except 9)
+  int get maxAyah => selectedSurah.number != 9 ? selectedSurah.verseCount - 1 : selectedSurah.verseCount;
 
   // ── Load Random Verses ──
   Future<void> loadMemorizedVerses() async {
@@ -90,9 +99,16 @@ class RetainProvider extends ChangeNotifier {
         try {
           final verses = await _db.getSurahVerses(surahNum);
           if (verses.isNotEmpty) {
-            // Pick up to 3 random verses from each surah
-            verses.shuffle(_random);
-            allVerses.addAll(verses.take(3));
+            // Skip Bismillah (ayah 1)
+            final filtered = verses.where((v) {
+              final text = (v['text'] ?? '').toString().trim();
+              final ayah = v['ayah'] as int? ?? 0;
+              return !(ayah == 1 && _isBismillahText(text));
+            }).toList();
+            if (filtered.isNotEmpty) {
+              filtered.shuffle(_random);
+              allVerses.addAll(filtered.take(3));
+            }
           }
         } catch (_) {}
       }
@@ -136,7 +152,13 @@ class RetainProvider extends ChangeNotifier {
     try {
       final surah = ReciteProvider.surahs[_selectedSurahIndex];
       final verses = await _db.getSurahVerses(surah.number);
-      final match = verses.where((v) => v['ayah'] == _selectedAyah).toList();
+      // Check if this surah has Bismillah as ayah 1
+      final hasBismillah = verses.isNotEmpty &&
+          (verses.first['ayah'] == 1) &&
+          _isBismillahText((verses.first['text'] ?? '').toString().trim());
+      // Offset: user picks ayah 1 but DB ayah is 2 if Bismillah exists
+      final dbAyah = hasBismillah ? _selectedAyah + 1 : _selectedAyah;
+      final match = verses.where((v) => v['ayah'] == dbAyah).toList();
       
       if (match.isNotEmpty) {
         _currentQuizVerse = match.first;
@@ -300,7 +322,7 @@ class RetainProvider extends ChangeNotifier {
           }
 
           _totalAttempts++;
-          if (accuracy >= 80) {
+          if (accuracy >= 85) {
             _correctCount++;
             _statusText = 'Excellent! ${accuracy.toStringAsFixed(0)}% accuracy';
           } else {
@@ -315,7 +337,7 @@ class RetainProvider extends ChangeNotifier {
             final currentCorrect = (todayProgress?['correct_recitations'] as int?) ?? 0;
             final currentSessions = (todayProgress?['practice_sessions'] as int?) ?? 0;
             await _db.upsertProgress({
-              'correct_recitations': accuracy >= 80 ? currentCorrect + 1 : currentCorrect,
+              'correct_recitations': accuracy >= 85 ? currentCorrect + 1 : currentCorrect,
               'practice_sessions': currentSessions + 1,
             });
           } catch (_) {}

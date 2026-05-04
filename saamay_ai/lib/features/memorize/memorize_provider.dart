@@ -13,6 +13,7 @@ enum WordState { hidden, current, correct, mistake, pending }
 /// Holds the state of a single verse during memorization
 class VerseState {
   final int ayahNumber;
+  final int originalAyahNumber; // DB ayah number for audio URL
   final String fullText;
   final List<String> words;
   List<WordState> wordStates;
@@ -21,6 +22,7 @@ class VerseState {
 
   VerseState({
     required this.ayahNumber,
+    required this.originalAyahNumber,
     required this.fullText,
     required this.words,
   })  : wordStates = List.filled(words.length, WordState.hidden),
@@ -35,8 +37,8 @@ class MemorizeProvider extends ChangeNotifier {
   // ── Setup State ──
   int _selectedSurahIndex = 0;
   int _startAyah = 1;
-  int _endAyah = 7;
-  int _totalAyahs = 7;
+  int _endAyah = 6;   // Al-Fatihah: 7 ayahs - 1 Bismillah = 6
+  int _totalAyahs = 6;
 
   // ── Session State ──
   List<VerseState> _verseStates = [];
@@ -78,7 +80,8 @@ class MemorizeProvider extends ChangeNotifier {
   Future<void> selectSurah(int index) async {
     _selectedSurahIndex = index;
     final surah = ReciteProvider.surahs[index];
-    _totalAyahs = surah.verseCount;
+    // Subtract 1 for surahs with Bismillah (all except Surah 9)
+    _totalAyahs = surah.number != 9 ? surah.verseCount - 1 : surah.verseCount;
     _startAyah = 1;
     _endAyah = _totalAyahs;
     _error = null;
@@ -145,23 +148,18 @@ class MemorizeProvider extends ChangeNotifier {
 
         // Skip Bismillah verse for ayah 1 (except Surah 9 which has no Bismillah)
         if (ayah == 1 && selectedSurah.number != 9) {
-          if (text.startsWith('بِسۡمِ') ||
-              text.startsWith('بِسْمِ') ||
-              text.startsWith('بسم')) {
+          final stripped = text.replaceAll(RegExp(r'[\u064B-\u065F\u0670\u06D6-\u06ED\u0610-\u061A\u08D3-\u08E1\u08E3-\u08FF\u0300-\u036F]'), '');
+          if (stripped.trimLeft().startsWith('بسم')) {
             bismillahSkipped = true;
             continue;
           }
         }
 
-        // Renumber if Bismillah was skipped
-        if (bismillahSkipped) {
-          ayah = ayah - 1;
-        }
-
         final words = text.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
         if (words.isNotEmpty) {
           _verseStates.add(VerseState(
-            ayahNumber: ayah,
+            ayahNumber: bismillahSkipped ? ayah - 1 : ayah,
+            originalAyahNumber: ayah,
             fullText: text,
             words: words,
           ));
@@ -351,7 +349,7 @@ class MemorizeProvider extends ChangeNotifier {
     
     if (!hasPending) {
       verse.isCompleted = true;
-      if (accuracy < 80.0) {
+      if (accuracy < 85.0) {
         _triggerCorrection(accuracy);
       } else {
         _advanceToNextVerse();
@@ -369,7 +367,7 @@ class MemorizeProvider extends ChangeNotifier {
       // Play a short error beep first (you could put a local asset beep.mp3 here)
       // Since we don't have a guaranteed beep asset, we'll just immediately play the correct audio.
       final currentSurahNum = selectedSurah.number;
-      final currentAyahNum = currentVerse!.ayahNumber;
+      final currentAyahNum = currentVerse!.originalAyahNumber;
       final audioUrl = BackendService.getAyahAudioUrl(currentSurahNum, currentAyahNum);
       
       await _audioPlayer.play(UrlSource(audioUrl));

@@ -503,7 +503,7 @@ class _RetainView extends StatelessWidget {
           ),
           const SizedBox(height: 20),
 
-          Text('Select Ayah (1 - ${surah.verseCount})', style: TextStyle(color: isDark ? Colors.white : AppColors.textDark, fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Select Ayah (1 - ${provider.maxAyah})', style: TextStyle(color: isDark ? Colors.white : AppColors.textDark, fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
 
           // Ayah Number Input
@@ -538,7 +538,7 @@ class _RetainView extends StatelessWidget {
                   icon: const Icon(Icons.add_circle_outline),
                   color: primary,
                   onPressed: () {
-                    if (provider.selectedAyah < surah.verseCount) provider.selectAyah(provider.selectedAyah + 1);
+                    if (provider.selectedAyah < provider.maxAyah) provider.selectAyah(provider.selectedAyah + 1);
                   },
                 ),
               ],

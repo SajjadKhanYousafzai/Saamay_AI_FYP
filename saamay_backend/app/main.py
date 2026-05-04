@@ -88,16 +88,11 @@ async def transcribe(
                 "status": "silence"
             }
 
-        # 3. Clean and process audio before Whisper!
-        # This fixes low microphone volumes and cuts out background AC hum/noise.
-        from app.audio_utils import process_audio_for_speech
-        cleaned_file_path = process_audio_for_speech(temp_file_path)
-
-        # 4. Transcribe
-        transcription_text = transcribe_audio_local(cleaned_file_path)
+        # 3. Transcribe
+        transcription_text = transcribe_audio_local(temp_file_path)
         logger.info(f"🗣️ Transcribed: {transcription_text}")
         
-        # 5. Analyze
+        # 4. Analyze
         analysis = mistake_service.detect_mistakes(transcription_text, surah_number, ayah_number)
         
         return {
