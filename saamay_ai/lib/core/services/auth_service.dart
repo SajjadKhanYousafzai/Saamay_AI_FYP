@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../config/supabase_config.dart';
 
@@ -13,6 +14,15 @@ class AuthService {
   // Auth state changes stream
   Stream<AuthState> get onAuthStateChange => _client.auth.onAuthStateChange;
 
+  // Platform specific redirect URL
+  String get _redirectUrl {
+    if (kIsWeb) {
+      return 'http://localhost:3000';
+    } else {
+      return 'com.saamayai.app://login-callback/';
+    }
+  }
+
   // Sign up with email & password
   Future<AuthResponse> signUp({
     required String email,
@@ -24,6 +34,7 @@ class AuthService {
         email: email,
         password: password,
         data: fullName != null ? {'full_name': fullName} : null,
+        emailRedirectTo: _redirectUrl,
       );
       return response;
     } on AuthApiException catch (e) {
@@ -51,10 +62,26 @@ class AuthService {
     }
   }
 
-  // Reset password
+  // Reset password (send email)
   Future<void> resetPassword({required String email}) async {
     try {
-      await _client.auth.resetPasswordForEmail(email);
+      await _client.auth.resetPasswordForEmail(
+        email,
+        redirectTo: _redirectUrl,
+      );
+    } on AuthApiException catch (e) {
+      throw Exception(_friendlyError(e));
+    } catch (e) {
+      throw Exception('Something went wrong. Please check your connection and try again.');
+    }
+  }
+
+  // Update password (after recovery email clicked)
+  Future<void> updatePassword({required String newPassword}) async {
+    try {
+      await _client.auth.updateUser(UserAttributes(
+        password: newPassword,
+      ));
     } on AuthApiException catch (e) {
       throw Exception(_friendlyError(e));
     } catch (e) {

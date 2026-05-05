@@ -3,6 +3,7 @@ import '../../features/auth/loading/loading_screen.dart';
 import '../../features/auth/login/login_screen.dart';
 import '../../features/auth/signup/signup_screen.dart';
 import '../../features/auth/reset_password/reset_password_screen.dart';
+import '../../features/auth/reset_password/update_password_screen.dart';
 import '../../features/navigation/main_navigation_screen.dart';
 import '../../features/bookmark/bookmark_screen.dart';
 import '../../features/profile_settings/profile_screen.dart';
@@ -16,6 +17,7 @@ class AppRoutes {
   static const String login = '/login';
   static const String signUp = '/signup';
   static const String resetPassword = '/reset-password';
+  static const String updatePassword = '/update-password';
   static const String mainNavigation = '/main';
   static const String bookmark = '/bookmark';
   static const String profile = '/profile';
@@ -32,6 +34,8 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const SignUpScreen());
       case resetPassword:
         return MaterialPageRoute(builder: (_) => const ResetPasswordScreen());
+      case updatePassword:
+        return MaterialPageRoute(builder: (_) => const UpdatePasswordScreen());
       case mainNavigation:
         return MaterialPageRoute(builder: (_) => const MainNavigationScreen());
       case bookmark:
