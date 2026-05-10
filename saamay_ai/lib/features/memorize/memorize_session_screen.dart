@@ -174,6 +174,27 @@ class MemorizeSessionScreen extends StatelessWidget {
           }),
 
           const SizedBox(height: 16),
+
+          // ── Finish Session Button (shown when all verses are done) ──
+          if (provider.allVersesCompleted) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => provider.finishSession(),
+                icon: const Icon(Icons.check_circle_outline, size: 22),
+                label: const Text('Finish Session', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 4,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
         ],
       ),
     );

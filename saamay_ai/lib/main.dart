@@ -6,10 +6,13 @@ import 'config/supabase_config.dart';
 import 'config/routes/app_routes.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
+import 'core/services/backend_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SupabaseConfig.initialize();
+  // Fire-and-forget: pre-warm the Modal backend so first recording is fast
+  BackendService.warmup();
   runApp(const SaamayAIApp());
 }
 

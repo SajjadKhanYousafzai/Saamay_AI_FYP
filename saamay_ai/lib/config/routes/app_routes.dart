@@ -25,7 +25,12 @@ class AppRoutes {
   static const String themeSelection = '/theme-selection';
 
   static Route<dynamic> generateRoute(RouteSettings routeSettings) {
-    switch (routeSettings.name) {
+    // Safely extract just the path, ignoring query parameters like ?error=access_denied
+    final String routeName = routeSettings.name ?? '/';
+    final Uri uri = Uri.parse(routeName);
+    final String path = uri.path.isEmpty ? '/' : uri.path;
+
+    switch (path) {
       case loading:
         return MaterialPageRoute(builder: (_) => const LoadingScreen());
       case login:

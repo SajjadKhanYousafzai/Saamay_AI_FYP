@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/backend_service.dart';
+import '../../core/services/database_service.dart';
 import 'recite_provider.dart';
 import '../bookmark/folder_selection_sheet.dart';
 
@@ -486,14 +487,22 @@ class _VerseCard extends StatefulWidget {
 
 class _VerseCardState extends State<_VerseCard> {
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final DatabaseService _db = DatabaseService();
   bool _isPlaying = false;
+  bool _isBookmarked = false;
 
   @override
   void initState() {
     super.initState();
+    _checkBookmarkStatus();
     _audioPlayer.onPlayerComplete.listen((_) {
       if (mounted) setState(() => _isPlaying = false);
     });
+  }
+
+  Future<void> _checkBookmarkStatus() async {
+    final status = await _db.isBookmarked(widget.surahNumber, widget.originalAyahNumber);
+    if (mounted) setState(() => _isBookmarked = status);
   }
 
   @override
@@ -511,6 +520,8 @@ class _VerseCardState extends State<_VerseCard> {
       setState(() => _isPlaying = true);
       try {
         await _audioPlayer.play(UrlSource(url));
+        // Record this recitation for tracking
+        ReciteProvider().recordRecitation(widget.surahNumber, widget.originalAyahNumber);
       } catch (e) {
         setState(() => _isPlaying = false);
         if (mounted) {
@@ -579,16 +590,22 @@ class _VerseCardState extends State<_VerseCard> {
                 const SizedBox(width: 6),
                 // Bookmark
                 _ActionIcon(
-                  icon: Icons.bookmark_border,
+                  icon: _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
                   isDark: widget.isDark,
-                  onTap: () {
-                    FolderSelectionSheet.show(
+                  onTap: () async {
+                    if (_isBookmarked) {
+                      // Optionally, they can remove it from BookmarkScreen, 
+                      // or we could add a remove feature here. For now, just show sheet
+                      // or tell them it's bookmarked. We will just let them save to another folder.
+                    }
+                    await FolderSelectionSheet.show(
                       context,
                       surahNumber: widget.surahNumber,
                       ayahNumber: widget.ayahNumber,
                       surahName: widget.surahName,
                       ayahText: widget.arabicText,
                     );
+                    _checkBookmarkStatus(); // Re-check after sheet closes
                   },
                 ),
               ],

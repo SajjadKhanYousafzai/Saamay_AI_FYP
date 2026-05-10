@@ -49,41 +49,20 @@ class _RetainView extends StatelessWidget {
           const SizedBox(height: 20),
 
           // ── Mode Toggle ──
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () {}, // Already in random mode
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: primary,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Center(
-                      child: Text('🎲 Random', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                    ),
-                  ),
-                ),
+          GestureDetector(
+            onTap: () => provider.setCustomMode(true),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.cardDark : AppColors.cardLight,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: primary.withOpacity(0.3)),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => provider.setCustomMode(true),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.cardDark : AppColors.cardLight,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: primary.withOpacity(0.3)),
-                    ),
-                    child: Center(
-                      child: Text('📖 Select Ayah', style: TextStyle(color: isDark ? Colors.white : AppColors.textDark, fontWeight: FontWeight.bold, fontSize: 14)),
-                    ),
-                  ),
-                ),
+              child: Center(
+                child: Text('📖 Select Ayah', style: TextStyle(color: isDark ? Colors.white : AppColors.textDark, fontWeight: FontWeight.bold, fontSize: 14)),
               ),
-            ],
+            ),
           ),
           const SizedBox(height: 20),
 
@@ -111,11 +90,12 @@ class _RetainView extends StatelessWidget {
   Widget _buildQuizCard(BuildContext context, RetainProvider provider, bool isDark, Color primary) {
     final verse = provider.currentQuizVerse!;
     final surahNum = verse['surah'] as int? ?? 1;
-    final ayahNum = verse['ayah'] as int? ?? 1;
     final surahInfo = ReciteProvider.surahs.firstWhere(
       (s) => s.number == surahNum,
       orElse: () => ReciteProvider.surahs[0],
     );
+    // Show the user-selected ayah number, not the raw DB ayah (which may be offset by Bismillah)
+    final displayAyah = provider.selectedAyah;
 
     return Container(
       width: double.infinity,
@@ -138,7 +118,7 @@ class _RetainView extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              '${surahInfo.name}  •  Ayah $ayahNum',
+              '${surahInfo.name}  •  Ayah $displayAyah',
               style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
             ),
           ),

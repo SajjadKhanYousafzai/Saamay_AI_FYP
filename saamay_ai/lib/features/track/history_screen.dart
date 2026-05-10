@@ -23,22 +23,24 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const bgColor = Color(0xFF101321);
-    const cardColor = Color(0xFF1A1C29);
-    
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = theme.cardTheme.color ?? (isDark ? const Color(0xFF1A1C29) : AppColors.surfaceLight);
+    final textColor = isDark ? Colors.white : AppColors.textDark;
+    final textMuted = isDark ? Colors.white.withValues(alpha: 0.6) : AppColors.textGrey;
+
     return Scaffold(
-      backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Progress History',
           style: TextStyle(
-            color: Colors.white,
+            color: textColor,
             fontWeight: FontWeight.w700,
             fontSize: 20,
           ),
@@ -46,7 +48,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white70),
+            icon: Icon(Icons.refresh, color: textMuted),
             onPressed: () {
               setState(() {
                 _historyFuture = DatabaseService().getFullProgressHistory();
@@ -69,10 +71,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'April 2026', // Mock month header as per design
                   style: TextStyle(
-                    color: Colors.white,
+                    color: textColor,
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
@@ -80,13 +82,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 const SizedBox(height: 16),
                 
                 if (data.isEmpty)
-                  _buildEmptyState()
+                  _buildEmptyState(textMuted)
                 else
                   ...data.asMap().entries.map((entry) {
                     final index = entry.key;
                     final day = entry.value;
                     final isExpanded = index == _expandedIndex;
-                    return _buildDayCard(day, isExpanded, index, cardColor);
+                    return _buildDayCard(day, isExpanded, index, cardColor, textColor, textMuted, isDark);
                   }),
               ],
             ),
@@ -96,14 +98,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(Color textMuted) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.only(top: 40),
         child: Text(
           'No history found yet',
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.5),
+            color: textMuted,
             fontSize: 16,
           ),
         ),
@@ -111,7 +113,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Widget _buildDayCard(Map<String, dynamic> day, bool isExpanded, int index, Color cardColor) {
+  Widget _buildDayCard(Map<String, dynamic> day, bool isExpanded, int index, Color cardColor, Color textColor, Color textMuted, bool isDark) {
     final dateStr = day['date'] as String? ?? '';
     DateTime? date = DateTime.tryParse(dateStr);
     
@@ -141,7 +143,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           color: cardColor,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isExpanded ? const Color(0xFF6B528A) : Colors.white.withValues(alpha: 0.05),
+            color: isExpanded ? const Color(0xFF6B528A) : textMuted.withValues(alpha: 0.1),
             width: isExpanded ? 1.5 : 1.0,
           ),
         ),
@@ -187,8 +189,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     children: [
                       Text(
                         isExpanded ? 'Today' : fullDayName,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: textColor,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -197,7 +199,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       Text(
                         fullDateAttr,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
+                          color: textMuted,
                           fontSize: 14,
                         ),
                       ),
@@ -229,7 +231,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Icon(Icons.keyboard_arrow_down, color: Colors.white.withValues(alpha: 0.5)),
+                  Icon(Icons.keyboard_arrow_down, color: textMuted),
                 ] else ...[
                   const Icon(Icons.keyboard_arrow_up, color: Color(0xFF2E8B57)),
                 ],
@@ -247,6 +249,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       title: 'Memorized',
                       value: '$memorized verses',
                       iconColor: const Color(0xFF2E8B57),
+                      isDark: isDark,
+                      textColor: textColor,
+                      textMuted: textMuted,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -256,6 +261,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       title: 'Read',
                       value: '$reads verses',
                       iconColor: const Color(0xFF6B528A),
+                      isDark: isDark,
+                      textColor: textColor,
+                      textMuted: textMuted,
                     ),
                   ),
                 ],
@@ -269,6 +277,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       title: 'Accuracy',
                       value: accuracyStr,
                       iconColor: const Color(0xFFC77C40),
+                      isDark: isDark,
+                      textColor: textColor,
+                      textMuted: textMuted,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -278,6 +289,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       title: 'Time Spent',
                       value: '0 min',
                       iconColor: const Color(0xFF3B82F6),
+                      isDark: isDark,
+                      textColor: textColor,
+                      textMuted: textMuted,
                     ),
                   ),
                 ],
@@ -294,12 +308,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
     required String title,
     required String value,
     required Color iconColor,
+    required bool isDark,
+    required Color textColor,
+    required Color textMuted,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF212332), 
+        color: isDark ? const Color(0xFF212332) : AppColors.cardLight, 
         borderRadius: BorderRadius.circular(16),
+        border: isDark ? null : Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -311,7 +329,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               Text(
                 title,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
+                  color: textMuted,
                   fontSize: 13,
                 ),
               ),
@@ -320,8 +338,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
           const SizedBox(height: 12),
           Text(
             value,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: textColor,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),

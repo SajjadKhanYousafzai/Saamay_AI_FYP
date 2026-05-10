@@ -82,6 +82,7 @@ class BookmarkProvider extends ChangeNotifier {
     } catch (e) {
       _error = 'Error adding bookmark: $e';
       notifyListeners();
+      throw Exception(_error);
     }
   }
 }

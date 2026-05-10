@@ -6,13 +6,33 @@ import '../../core/constants/app_colors.dart';
 import 'track_provider.dart';
 import 'history_screen.dart';
 
-class TrackScreen extends StatelessWidget {
+class TrackScreen extends StatefulWidget {
   const TrackScreen({super.key});
 
   @override
+  State<TrackScreen> createState() => _TrackScreenState();
+}
+
+class _TrackScreenState extends State<TrackScreen> {
+  late final TrackProvider _provider;
+
+  @override
+  void initState() {
+    super.initState();
+    _provider = TrackProvider()..loadStats();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh stats every time this tab becomes visible
+    _provider.loadStats();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => TrackProvider()..loadStats(),
+    return ChangeNotifierProvider.value(
+      value: _provider,
       child: const _TrackView(),
     );
   }
@@ -27,9 +47,12 @@ class _TrackView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<TrackProvider>();
-    // The design is strictly dark themed navy.
-    const bgColor = Color(0xFF101321);
-    const cardColor = Color(0xFF1B1D2A);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    final cardColor = theme.cardTheme.color ?? (isDark ? const Color(0xFF1B1D2A) : AppColors.cardLight);
+    final textColor = isDark ? Colors.white : AppColors.textDark;
+    final textMuted = isDark ? Colors.white.withValues(alpha: 0.5) : AppColors.textGrey;
 
     // Calculate dynamic percentages
     final memorizeProgress = provider.totalMemorized / _totalQuranVerses;
@@ -37,7 +60,6 @@ class _TrackView extends StatelessWidget {
     final retainProgress = provider.retentionRate / 100;
 
     return Scaffold(
-      backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -45,11 +67,15 @@ class _TrackView extends StatelessWidget {
       ),
       body: provider.isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primaryGreen))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+          : RefreshIndicator(
+              onRefresh: () => provider.loadStats(),
+              color: AppColors.primaryGreen,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                   // 1. Memorization Card
                   _buildStatCard(
                     title: 'Memorization',
@@ -58,6 +84,8 @@ class _TrackView extends StatelessWidget {
                     progress: memorizeProgress.clamp(0.0, 1.0),
                     primaryColor: const Color(0xFF2E8B57), // Green
                     cardColor: cardColor,
+                    textColor: textColor,
+                    textMuted: textMuted,
                   ),
                   const SizedBox(height: 12),
 
@@ -69,6 +97,8 @@ class _TrackView extends StatelessWidget {
                     progress: reciteProgress.clamp(0.0, 1.0),
                     primaryColor: const Color(0xFF6B528A), // Purple
                     cardColor: cardColor,
+                    textColor: textColor,
+                    textMuted: textMuted,
                   ),
                   const SizedBox(height: 12),
 
@@ -80,15 +110,17 @@ class _TrackView extends StatelessWidget {
                     progress: retainProgress.clamp(0.0, 1.0),
                     primaryColor: const Color(0xFFC77C40), // Orange
                     cardColor: cardColor,
+                    textColor: textColor,
+                    textMuted: textMuted,
                   ),
                   const SizedBox(height: 24),
 
                   // Horizontal Date Picker (Dynamic)
-                  _buildDynamicDateHeader(),
+                  _buildDynamicDateHeader(textColor, textMuted),
                   const SizedBox(height: 20),
 
                   // Line Chart Area (Dynamic)
-                  _buildDynamicChart(provider, cardColor),
+                  _buildDynamicChart(provider, cardColor, textColor, textMuted),
                   const SizedBox(height: 16),
 
                   // Check Progress Button
@@ -104,28 +136,29 @@ class _TrackView extends StatelessWidget {
                       margin: const EdgeInsets.only(bottom: 30),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF171728), 
+                        color: isDark ? const Color(0xFF171728) : AppColors.surfaceLight, 
                         borderRadius: BorderRadius.circular(16),
+                        border: isDark ? null : Border.all(color: Colors.grey.shade200),
                       ),
                       child: Row(
                         children: [
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF2D264A),
+                              color: isDark ? const Color(0xFF2D264A) : AppColors.primaryGreen.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.calendar_month, color: Color(0xFF7B66A4), size: 24),
+                            child: Icon(Icons.calendar_month, color: isDark ? const Color(0xFF7B66A4) : AppColors.primaryGreen, size: 24),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
+                                Text(
                                   'Check your Progress',
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: textColor,
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -134,14 +167,14 @@ class _TrackView extends StatelessWidget {
                                 Text(
                                   'View your daily activity history',
                                   style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.6),
+                                    color: textMuted,
                                     fontSize: 13,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          Icon(Icons.arrow_forward_ios, color: const Color(0xFF7B66A4).withValues(alpha: 0.8), size: 16),
+                          Icon(Icons.arrow_forward_ios, color: isDark ? const Color(0xFF7B66A4).withValues(alpha: 0.8) : Colors.grey.shade400, size: 16),
                         ],
                       ),
                     ),
@@ -149,6 +182,7 @@ class _TrackView extends StatelessWidget {
                 ],
               ),
             ),
+          ),
     );
   }
 
@@ -159,6 +193,8 @@ class _TrackView extends StatelessWidget {
     required double progress,
     required Color primaryColor,
     required Color cardColor,
+    required Color textColor,
+    required Color textMuted,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -188,8 +224,8 @@ class _TrackView extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: textColor,
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                   ),
@@ -198,7 +234,7 @@ class _TrackView extends StatelessWidget {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
+                    color: textMuted,
                     fontSize: 14,
                   ),
                 ),
@@ -225,9 +261,9 @@ class _TrackView extends StatelessWidget {
                 ),
                 Center(
                   child: Text(
-                    '${(progress * 100).toInt()}%',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    _formatProgress(progress),
+                    style: TextStyle(
+                      color: textColor,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
@@ -241,8 +277,16 @@ class _TrackView extends StatelessWidget {
     );
   }
 
+  String _formatProgress(double progress) {
+    final percent = progress * 100;
+    if (percent > 0 && percent < 1) {
+      return '${percent.toStringAsFixed(1)}%';
+    }
+    return '${percent.toInt()}%';
+  }
+
   // ── Dynamic Date Header ──
-  Widget _buildDynamicDateHeader() {
+  Widget _buildDynamicDateHeader(Color textColor, Color textMuted) {
     final now = DateTime.now();
     final days = <DateTime>[];
     // Generate 2 days before today, today, and 2 days after
@@ -258,12 +302,12 @@ class _TrackView extends StatelessWidget {
             date.year == now.year;
         final dayNum = date.day.toString();
         final dayName = DateFormat('EEE').format(date); // Mon, Tue, etc.
-        return _dateItem(dayNum, dayName, isToday);
+        return _dateItem(dayNum, dayName, isToday, textColor, textMuted);
       }).toList(),
     );
   }
 
-  Widget _dateItem(String date, String day, bool isActive) {
+  Widget _dateItem(String date, String day, bool isActive, Color textColor, Color textMuted) {
     if (isActive) {
       return Column(
         children: [
@@ -305,12 +349,12 @@ class _TrackView extends StatelessWidget {
         children: [
           Text(
             date,
-            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
           Text(
             day,
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12),
+            style: TextStyle(color: textMuted, fontSize: 12),
           ),
         ],
       ),
@@ -318,15 +362,17 @@ class _TrackView extends StatelessWidget {
   }
 
   // ── Dynamic Chart ──
-  Widget _buildDynamicChart(TrackProvider provider, Color cardColor) {
+  Widget _buildDynamicChart(TrackProvider provider, Color cardColor, Color textColor, Color textMuted) {
     final weeklyData = provider.weeklyProgress;
 
     // Build a map of date -> data for quick lookup
     final Map<String, Map<String, dynamic>> dataByDate = {};
     for (final row in weeklyData) {
-      final date = row['date'] as String?;
-      if (date != null) {
-        dataByDate[date] = row;
+      final dateStr = row['date'] as String?;
+      if (dateStr != null && dateStr.length >= 10) {
+        dataByDate[dateStr.substring(0, 10)] = row;
+      } else if (dateStr != null) {
+        dataByDate[dateStr] = row;
       }
     }
 
@@ -352,7 +398,7 @@ class _TrackView extends StatelessWidget {
       final practice = (dayData?['practice_sessions'] as int?) ?? 0;
       final correct = (dayData?['correct_recitations'] as int?) ?? 0;
       if (practice > 0) {
-        retainVal = (correct / practice) * 10; // Scale: 100% becomes 10
+        retainVal = (correct / practice) * 100; // Scale: 100% becomes 100
       }
 
       memorizeSpots.add(FlSpot(i.toDouble(), memorized));
@@ -375,7 +421,7 @@ class _TrackView extends StatelessWidget {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: textMuted.withValues(alpha: 0.1)),
       ),
       child: Column(
         children: [
@@ -395,7 +441,7 @@ class _TrackView extends StatelessWidget {
                         } else if (color == const Color(0xFF6B528A)) {
                           label = '${spot.y.toInt()} read';
                         } else {
-                          label = '${(spot.y * 10).toInt()}% accuracy';
+                          label = '${spot.y.toInt()}% accuracy';
                         }
                         return LineTooltipItem(
                           label,
@@ -434,7 +480,7 @@ class _TrackView extends StatelessWidget {
                           child: Text(
                             DateFormat('E').format(last7Days[idx]), // M, T, W...
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.5),
+                              color: textMuted,
                               fontSize: 10,
                             ),
                           ),
@@ -450,9 +496,9 @@ class _TrackView extends StatelessWidget {
                 maxY: maxVal,
                 lineBarsData: [
                   // Memorize Line - Green
-                  _buildDynamicLineSeries(const Color(0xFF2E8B57), memorizeSpots),
+                  _buildDynamicLineSeries(const Color(0xFF2E8B57), memorizeSpots, showDots: true),
                   // Recite Line - Purple
-                  _buildDynamicLineSeries(const Color(0xFF6B528A), reciteSpots),
+                  _buildDynamicLineSeries(const Color(0xFF6B528A), reciteSpots, showDots: true),
                   // Retain Line - Orange
                   _buildDynamicLineSeries(const Color(0xFFC77C40), retainSpots, showDots: true),
                 ],
@@ -464,11 +510,11 @@ class _TrackView extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              _buildLegendItem(const Color(0xFF2E8B57), 'Memorize'),
+              _buildLegendItem(const Color(0xFF2E8B57), 'Memorize', textMuted),
               const SizedBox(width: 16),
-              _buildLegendItem(const Color(0xFF6B528A), 'Recite'),
+              _buildLegendItem(const Color(0xFF6B528A), 'Recite', textMuted),
               const SizedBox(width: 16),
-              _buildLegendItem(const Color(0xFFC77C40), 'Retain'),
+              _buildLegendItem(const Color(0xFFC77C40), 'Retain', textMuted),
             ],
           ),
         ],
@@ -505,7 +551,7 @@ class _TrackView extends StatelessWidget {
     );
   }
 
-  Widget _buildLegendItem(Color color, String label) {
+  Widget _buildLegendItem(Color color, String label, Color textMuted) {
     return Row(
       children: [
         Container(
@@ -520,7 +566,7 @@ class _TrackView extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.7),
+            color: textMuted,
             fontSize: 12,
             fontWeight: FontWeight.w500,
           ),

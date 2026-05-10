@@ -206,8 +206,8 @@ class DatabaseService {
       'ayah_number': ayahNumber,
       'surah_name': surahName,
       'ayah_text': ayahText,
-      if (folderId != null) 'collection_id': folderId,
-    });
+      'collection_id': folderId,
+    }, onConflict: 'user_id,surah_number,ayah_number');
   }
 
   Future<void> removeBookmark(String bookmarkId) async {

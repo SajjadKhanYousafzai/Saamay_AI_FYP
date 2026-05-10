@@ -50,18 +50,26 @@ class _FolderSelectionSheetState extends State<FolderSelectionSheet> {
   bool _isCreating = false;
 
   void _saveBookmark(BuildContext context, String? folderId, BookmarkProvider provider) async {
-    await provider.addBookmark(
-      surahNumber: widget.surahNumber,
-      ayahNumber: widget.ayahNumber,
-      surahName: widget.surahName,
-      ayahText: widget.ayahText,
-      folderId: folderId,
-    );
-    if (!context.mounted) return;
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Ayah Saved successfully!'), backgroundColor: AppColors.primaryGreen),
-    );
+    try {
+      await provider.addBookmark(
+        surahNumber: widget.surahNumber,
+        ayahNumber: widget.ayahNumber,
+        surahName: widget.surahName,
+        ayahText: widget.ayahText,
+        folderId: folderId,
+      );
+      if (!context.mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ayah Saved successfully!'), backgroundColor: AppColors.primaryGreen),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.pop(context); // Close sheet
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceAll('Exception: ', '')), backgroundColor: Colors.red),
+      );
+    }
   }
 
   void _createFolderAndSave(BookmarkProvider provider) async {

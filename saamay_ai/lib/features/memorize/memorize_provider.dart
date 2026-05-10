@@ -48,6 +48,7 @@ class MemorizeProvider extends ChangeNotifier {
   bool _isListening = false;
   bool _isPlayingCorrection = false;
   String _lastRecognizedText = '';
+  bool _showCompletion = false;
   
   String? _currentRecordPath;
 
@@ -72,8 +73,15 @@ class MemorizeProvider extends ChangeNotifier {
   String get lastRecognizedText => _lastRecognizedText;
   int get completedVerses =>
       _verseStates.where((v) => v.isCompleted).length;
-  bool get isSessionComplete =>
+  bool get allVersesCompleted =>
       _verseStates.isNotEmpty && _verseStates.every((v) => v.isCompleted);
+  bool get isSessionComplete => _showCompletion;
+
+  /// Call this when the user is ready to see the session complete screen
+  void finishSession() {
+    _showCompletion = true;
+    notifyListeners();
+  }
 
   // ── Setup Methods ──
 
@@ -126,11 +134,23 @@ class MemorizeProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Load all verses in range
+      // Load all verses for this surah
       final allVerses = await _db.getSurahVerses(selectedSurah.number);
+
+      // Detect Bismillah offset: for most surahs, DB ayah 1 is Bismillah,
+      // so user's ayah 1 is actually DB ayah 2.
+      final hasBismillah = selectedSurah.number != 9 && allVerses.isNotEmpty &&
+          (allVerses.first['ayah'] == 1) &&
+          (allVerses.first['text'] ?? '').toString().trim().replaceAll(
+            RegExp(r'[\u064B-\u065F\u0670\u06D6-\u06ED\u0610-\u061A\u08D3-\u08E1\u08E3-\u08FF\u0300-\u036F]'), ''
+          ).trimLeft().startsWith('بسم');
+
+      final dbStart = hasBismillah ? _startAyah + 1 : _startAyah;
+      final dbEnd = hasBismillah ? _endAyah + 1 : _endAyah;
+
       final rangeVerses = allVerses.where((v) {
         final ayah = v['ayah'] as int? ?? 0;
-        return ayah >= _startAyah && ayah <= _endAyah;
+        return ayah >= dbStart && ayah <= dbEnd;
       }).toList();
 
       if (rangeVerses.isEmpty) {
@@ -140,26 +160,16 @@ class MemorizeProvider extends ChangeNotifier {
         return;
       }
 
-      // Build verse states
-      bool bismillahSkipped = false;
+      // Build verse states (Bismillah is already excluded by range offset)
       for (final verse in rangeVerses) {
         final text = (verse['text'] ?? '').toString().trim();
         int ayah = verse['ayah'] as int? ?? 0;
 
-        // Skip Bismillah verse for ayah 1 (except Surah 9 which has no Bismillah)
-        if (ayah == 1 && selectedSurah.number != 9) {
-          final stripped = text.replaceAll(RegExp(r'[\u064B-\u065F\u0670\u06D6-\u06ED\u0610-\u061A\u08D3-\u08E1\u08E3-\u08FF\u0300-\u036F]'), '');
-          if (stripped.trimLeft().startsWith('بسم')) {
-            bismillahSkipped = true;
-            continue;
-          }
-        }
-
         final words = text.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
         if (words.isNotEmpty) {
           _verseStates.add(VerseState(
-            ayahNumber: bismillahSkipped ? ayah - 1 : ayah,
-            originalAyahNumber: ayah,
+            ayahNumber: hasBismillah ? ayah - 1 : ayah, // Display ayah (user-facing)
+            originalAyahNumber: ayah, // DB ayah (for audio URL)
             fullText: text,
             words: words,
           ));
@@ -294,7 +304,7 @@ class MemorizeProvider extends ChangeNotifier {
         final analysis = response['analysis'] as Map<String, dynamic>?;
 
         if (analysis != null && analysis.containsKey('diff')) {
-          _updateVerseFromDiff(analysis);
+          await _updateVerseFromDiff(analysis);
         } else {
           _error = 'Analysis failed to return word data.';
         }
@@ -310,7 +320,7 @@ class MemorizeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _updateVerseFromDiff(Map<String, dynamic> analysis) {
+  Future<void> _updateVerseFromDiff(Map<String, dynamic> analysis) async {
     if (_currentVerseIndex >= _verseStates.length) return;
     
     final verse = _verseStates[_currentVerseIndex];
@@ -351,9 +361,12 @@ class MemorizeProvider extends ChangeNotifier {
       verse.isCompleted = true;
       if (accuracy < 85.0) {
         _triggerCorrection(accuracy);
-      } else {
+      } else if (_currentVerseIndex < _verseStates.length - 1) {
+        // Not the last verse — advance to next
         _advanceToNextVerse();
       }
+      // If it IS the last verse with good accuracy, just stay here.
+      // The user will see the result and tap "Finish Session".
     }
     
     notifyListeners();
@@ -364,22 +377,27 @@ class MemorizeProvider extends ChangeNotifier {
     notifyListeners();
     
     try {
-      // Play a short error beep first (you could put a local asset beep.mp3 here)
-      // Since we don't have a guaranteed beep asset, we'll just immediately play the correct audio.
       final currentSurahNum = selectedSurah.number;
       final currentAyahNum = currentVerse!.originalAyahNumber;
       final audioUrl = BackendService.getAyahAudioUrl(currentSurahNum, currentAyahNum);
       
       await _audioPlayer.play(UrlSource(audioUrl));
-      
-      // We don't advance the verse until they try again or manually skip?
-      // For now, let the user re-record. The verse stays as currentVerseIndex.
-      
+
+      // Wait for audio to finish
+      await _audioPlayer.onPlayerComplete.first;
     } catch (e) {
       _error = 'Failed to load correction audio.';
-      _isPlayingCorrection = false;
-      notifyListeners();
     }
+
+    _isPlayingCorrection = false;
+
+    // If this was the last verse, advance now (session will become complete)
+    if (_currentVerseIndex >= _verseStates.length - 1 && 
+        _verseStates[_currentVerseIndex].isCompleted) {
+      // Already completed, session done — just notify
+    }
+    
+    notifyListeners();
   }
 
   void _advanceToNextVerse() {

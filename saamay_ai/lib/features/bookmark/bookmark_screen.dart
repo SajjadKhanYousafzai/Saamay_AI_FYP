@@ -39,11 +39,16 @@ class _BookmarkView extends StatelessWidget {
       ),
       body: provider.isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primaryGreen))
-          : RefreshIndicator(
-              onRefresh: () async {
-                await provider.loadFolders();
-                await provider.loadBookmarks();
-              },
+          : provider.error != null
+              ? Center(child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Text(provider.error!, style: TextStyle(color: Colors.red)),
+                ))
+              : RefreshIndicator(
+                  onRefresh: () async {
+                    await provider.loadFolders();
+                    await provider.loadBookmarks();
+                  },
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
