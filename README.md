@@ -15,9 +15,9 @@ Saamay AI is a comprehensive, AI-powered Quran recitation and memorization compa
 
 ## 📱 Download & Install (APK)
 You can directly install the app on your Android device! 
-📥 **[Download Saamay AI APK](app-release.apk)**
+📥 **[Download Saamay AI APK (Debug Version)](saamay_ai/build/app/outputs/flutter-apk/app-debug.apk)**
 
-*(Note to developer: After running `flutter build apk --release`, place the `app-release.apk` file in the root folder of this repository so the link above works.)*
+*(Note: Clicking the link above will automatically download the APK directly from this repository to your device.)*
 
 ## 🛠 High-Level Architecture / Tech Stack
 - **Front-end:** Flutter (Dart) for cross-platform iOS and Android support.
