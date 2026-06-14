@@ -208,8 +208,6 @@ Automatically fetches the exact corrected audio snippet for the specific Ayah wh
 
 <p><em>Direct APK download for Android devices</em></p>
 
-> ⚠️ **Note for Repository Owner**: Upload your <code>app-debug.apk</code> to the <strong>Releases</strong> section for this link to work.
-
 </div>
 
 ---
