@@ -1,5 +1,4 @@
-
-readme_content = '''<div align="center">
+<div align="center">
 
 <!-- Animated Header -->
 <img src="https://capsule-render.vercel.app/api?type=venom&color=0:0D7377,100:14919b&height=250&section=header&text=Saamay%20AI&fontSize=70&fontColor=ffffff&animation=fadeIn&fontAlignY=40&desc=Your%20AI-Powered%20Quran%20Companion&descAlignY=65&descSize=22&stroke=ffffff&strokeWidth=1" width="100%"/>
